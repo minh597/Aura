@@ -319,64 +319,58 @@ function Elements.Slider(Parent, Theme, SavedData, SelfRef, Config)
 end
 
 function Elements.Dropdown(Parent, Theme, SavedData, SelfRef, Config)
-    local Flag = Config.Flag or Config.Name
-    local Options = Config.Options or {}
+    local Flag, Options, IsMulti = Config.Flag or Config.Name, Config.Options or {}, Config.MultiSelect or false
     local SavedVal = SavedData[Flag]
-    local Selected = SavedVal and table.find(Options, SavedVal) and SavedVal or (Config.Default or Options[1] or "")
-    local DropdownOpen = false
-    UpdateFlag(SelfRef, SavedData, Flag, Selected)
+    local Selected = IsMulti and (type(SavedVal) == "table" and SavedVal or (type(Config.Default) == "table" and Config.Default or {})) or (SavedVal and table.find(Options, SavedVal) and SavedVal or (Config.Default or Options[1] or ""))
 
-    local Frame = UI.Create("Frame", Parent, { Size = UDim2.new(0.98, 0, 0, 36), BackgroundColor3 = Theme.Element, ClipsDescendants = true })
-    UI.Corner(Frame, 6)
-    UI.Stroke(Frame, Theme.Border)
+    local function UpdateFlagVal()
+        if SelfRef._configName then SavedData[Flag] = Selected SaveDataToFile(SelfRef._configName, SavedData) end
+    end
+    UpdateFlagVal()
 
-    UI.Create("TextLabel", Frame, {
-        Size = UDim2.new(0.5, 0, 0, 36), Position = UDim2.new(0, 10, 0, 0),
-        BackgroundTransparency = 1, Text = Config.Name or "Dropdown", TextColor3 = Theme.Text,
-        TextSize = 12, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left
-    })
+    local Open, Frame = false, UI.Create("Frame", Parent, { Size = UDim2.new(0.98, 0, 0, 36), BackgroundColor3 = Theme.Element, ClipsDescendants = true })
+    UI.Corner(Frame, 6) UI.Stroke(Frame, Theme.Border)
 
-    local ValBtn = UI.Create("TextButton", Frame, {
-        Size = UDim2.new(0, 130, 0, 24), Position = UDim2.new(1, -138, 0, 6),
-        BackgroundColor3 = Theme.Card, Text = tostring(Selected), TextColor3 = Theme.Accent,
-        TextSize = 11, Font = Enum.Font.GothamBold, AutoButtonColor = false
-    })
+    UI.Create("TextLabel", Frame, { Size = UDim2.new(0.5, 0, 0, 36), Position = UDim2.new(0, 10, 0, 0), BackgroundTransparency = 1, Text = Config.Name or "Dropdown", TextColor3 = Theme.Text, TextSize = 12, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left })
+
+    local function GetText() return IsMulti and (#Selected == 0 and "None" or (#Selected == #Options and "All" or table.concat(Selected, ", "))) or tostring(Selected) end
+
+    local ValBtn = UI.Create("TextButton", Frame, { Size = UDim2.new(0, 130, 0, 24), Position = UDim2.new(1, -138, 0, 6), BackgroundColor3 = Theme.Card, Text = GetText(), TextColor3 = Theme.Accent, TextSize = 11, Font = Enum.Font.GothamBold, AutoButtonColor = false, TextTruncate = Enum.TextTruncate.AtEnd })
     UI.Corner(ValBtn, 4)
 
-    local OptContainer = UI.Create("ScrollingFrame", Frame, {
-        Size = UDim2.new(1, -16, 0, 0), Position = UDim2.new(0, 8, 0, 42),
-        BackgroundTransparency = 1, ScrollBarThickness = 2
-    })
+    local OptContainer = UI.Create("ScrollingFrame", Frame, { Size = UDim2.new(1, -16, 0, 0), Position = UDim2.new(0, 8, 0, 42), BackgroundTransparency = 1, ScrollBarThickness = 2 })
     local OptLayout = UI.Create("UIListLayout", OptContainer, { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 4) })
-    OptLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        OptContainer.CanvasSize = UDim2.new(0, 0, 0, OptLayout.AbsoluteContentSize.Y + 4)
-    end)
+    OptLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() OptContainer.CanvasSize = UDim2.new(0, 0, 0, OptLayout.AbsoluteContentSize.Y + 4) end)
 
     local function Build()
         for _, c in ipairs(OptContainer:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
         for _, opt in ipairs(Options) do
-            local b = UI.Create("TextButton", OptContainer, {
-                Size = UDim2.new(1, 0, 0, 28), BackgroundColor3 = Theme.Card,
-                Text = tostring(opt), TextColor3 = Theme.SubText, TextSize = 11, Font = Enum.Font.Gotham, AutoButtonColor = false
-            })
+            local isSel = IsMulti and (table.find(Selected, opt) ~= nil) or (Selected == opt)
+            local b = UI.Create("TextButton", OptContainer, { Size = UDim2.new(1, 0, 0, 28), BackgroundColor3 = Theme.Card, Text = (IsMulti and "    " or "") .. tostring(opt), TextColor3 = isSel and Theme.Text or Theme.SubText, TextSize = 11, Font = isSel and Enum.Font.GothamBold or Enum.Font.Gotham, TextXAlignment = IsMulti and Enum.TextXAlignment.Left or Enum.TextXAlignment.Center, AutoButtonColor = false })
             UI.Corner(b, 4)
+            local Check = IsMulti and UI.Create("Frame", b, { Size = UDim2.new(0, 14, 0, 14), Position = UDim2.new(1, -20, 0.5, -7), BackgroundColor3 = isSel and Theme.Accent or Theme.Element })
+            if Check then UI.Corner(Check, 3) UI.Stroke(Check, Theme.Border) end
+
             b.MouseButton1Click:Connect(function()
-                Selected = opt
-                ValBtn.Text = tostring(opt)
-                DropdownOpen = false
-                TweenService:Create(Frame, TweenInfo.new(0.2), {Size = UDim2.new(0.98, 0, 0, 36)}):Play()
-                TweenService:Create(OptContainer, TweenInfo.new(0.2), {Size = UDim2.new(1, -16, 0, 0)}):Play()
-                UpdateFlag(SelfRef, SavedData, Flag, Selected)
-                pcall(Config.Callback or function() end, Selected)
+                if IsMulti then
+                    local idx = table.find(Selected, opt)
+                    if idx then table.remove(Selected, idx) isSel = false else table.insert(Selected, opt) isSel = true end
+                    b.TextColor3 = isSel and Theme.Text or Theme.SubText b.Font = isSel and Enum.Font.GothamBold or Enum.Font.Gotham Check.BackgroundColor3 = isSel and Theme.Accent or Theme.Element
+                    ValBtn.Text = GetText() UpdateFlagVal() pcall(Config.Callback or function() end, Selected)
+                else
+                    Selected = opt ValBtn.Text = tostring(opt) Open = false
+                    TweenService:Create(Frame, TweenInfo.new(0.2), {Size = UDim2.new(0.98, 0, 0, 36)}):Play()
+                    TweenService:Create(OptContainer, TweenInfo.new(0.2), {Size = UDim2.new(1, -16, 0, 0)}):Play()
+                    UpdateFlagVal() pcall(Config.Callback or function() end, Selected)
+                end
             end)
         end
     end
     Build()
 
     ValBtn.MouseButton1Click:Connect(function()
-        DropdownOpen = not DropdownOpen
-        local targetH = DropdownOpen and math.clamp(#Options * 32 + 48, 48, 170) or 36
-        local contH = DropdownOpen and (targetH - 48) or 0
+        Open = not Open
+        local targetH, contH = Open and math.clamp(#Options * 32 + 48, 48, 170) or 36, Open and (targetH - 48) or 0
         TweenService:Create(Frame, TweenInfo.new(0.2), {Size = UDim2.new(0.98, 0, 0, targetH)}):Play()
         TweenService:Create(OptContainer, TweenInfo.new(0.2), {Size = UDim2.new(1, -16, 0, contH)}):Play()
     end)
@@ -384,15 +378,14 @@ function Elements.Dropdown(Parent, Theme, SavedData, SelfRef, Config)
     local Obj = {}
     function Obj:Refresh(newOpts)
         Options = newOpts
-        if not table.find(Options, Selected) then
-            Selected = Options[1] or ""
-            ValBtn.Text = tostring(Selected)
-        end
-        Build()
+        if IsMulti then for i = #Selected, 1, -1 do if not table.find(Options, Selected[i]) then table.remove(Selected, i) end end
+        else if not table.find(Options, Selected) then Selected = Options[1] or "" end end
+        ValBtn.Text = GetText() Build()
     end
     function Obj:GetValue() return Selected end
     return Obj
 end
+
 
 function Elements.Textbox(Parent, Theme, SavedData, SelfRef, Config)
     local Flag = Config.Flag or Config.Name
