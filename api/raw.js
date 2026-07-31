@@ -2,14 +2,9 @@ import fs from "fs";
 import path from "path";
 
 export default function handler(req, res) {
-    const ua = req.headers["user-agent"] || "";
-
-    // Chặn người truy cập bằng trình duyệt
-    if (ua.includes("Mozilla")) {
-        res.status(403);
-        res.setHeader("Content-Type", "text/html; charset=utf-8");
-
-        return res.send(`
+    res.setHeader("Content-Type", "application/json");
+    res.send(JSON.stringify(req.headers, null, 2));
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
