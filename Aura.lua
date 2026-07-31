@@ -12,7 +12,7 @@ if CachedParent:FindFirstChild("Aura_Minified_Icon") then CachedParent.Aura_Mini
 
 local AuraPro = {
     KeyConfigName = "AuraKey_Save.json",
-    Version = "2.5.1"
+    Version = "2.5.5"
 }
 
 local SuccessTheme, RemoteThemes = pcall(function()
@@ -86,37 +86,52 @@ function UI.Stroke(Obj, Color, Thickness)
     return UI.Create("UIStroke", Obj, { Color = Color, Thickness = Thickness or 1 })
 end
 
-local gDragging, gDragStart, gStartPos, gTargetFrame
-local activeInput = nil
-
-UserInputService.InputEnded:Connect(function(input)
-    if input == activeInput then
-        gDragging = false
-        activeInput = nil
-        gTargetFrame = nil
-    end
-end)
+-- Stable Mobile Draggable System
+local gDragInput, gDragStart, gStartPos, gTargetFrame
 
 UserInputService.InputChanged:Connect(function(input)
-    if gDragging and gTargetFrame and input == activeInput then
+    if input == gDragInput and gTargetFrame then
         local delta = input.Position - gDragStart
-        gTargetFrame.Position = UDim2.new(gStartPos.X.Scale, gStartPos.X.Offset + delta.X, gStartPos.Y.Scale, gStartPos.Y.Offset + delta.Y)
+        gTargetFrame.Position = UDim2.new(
+            gStartPos.X.Scale,
+            gStartPos.X.Offset + delta.X,
+            gStartPos.Y.Scale,
+            gStartPos.Y.Offset + delta.Y
+        )
     end
 end)
 
 local function MakeDraggable(Frame, Handle)
+    local dragging = false
+    local dragInput
+    local dragStart
+    local startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
     Handle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            gTargetFrame = Frame
-            gDragging = true
-            activeInput = input
-            gDragStart = input.Position
-            gStartPos = Frame.Position
+            dragging = true
+            dragStart = input.Position
+            startPos = Frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            update(input)
         end
     end)
 end
-
-
 local Elements = {}
 
 function Elements.Label(Parent, Theme, Config)
@@ -156,12 +171,52 @@ function Elements.Divider(Parent, Theme)
     UI.Create("Frame", Div, { Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0.5, 0), BackgroundColor3 = Theme.Border, BorderSizePixel = 0 })
 end
 
+-- Section với biểu tượng 2 đường gạch gọn gàng (`⌃` / `⌄`)
 function Elements.Section(Parent, Theme, Text)
-    UI.Create("TextLabel", Parent, {
-        Size = UDim2.new(1, 0, 0, 24), BackgroundTransparency = 1,
+    local SectionBtn = UI.Create("TextButton", Parent, {
+        Size = UDim2.new(1, 0, 0, 28), BackgroundTransparency = 1,
+        Text = "", AutoButtonColor = false, Active = true
+    })
+
+    local TitleLbl = UI.Create("TextLabel", SectionBtn, {
+        Size = UDim2.new(1, -30, 1, 0), Position = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1,
         Text = "  " .. string.upper(Text), TextColor3 = Theme.Accent,
         TextSize = 11, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left
     })
+
+    local ArrowLbl = UI.Create("TextLabel", SectionBtn, {
+        Size = UDim2.new(0, 24, 0, 24), Position = UDim2.new(1, -24, 0.5, -12), BackgroundTransparency = 1,
+        Text = "⌃⌃", TextColor3 = Theme.Accent, TextSize = 10, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Center
+    })
+
+    local isOpen = true
+    SectionBtn.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        ArrowLbl.Text = isOpen and "⌃⌃" or "⌄⌄"
+        
+        local foundThis = false
+        for _, child in ipairs(Parent:GetChildren()) do
+            if child == SectionBtn then
+                foundThis = true
+            elseif foundThis then
+                local isNextSection = false
+                if child:IsA("TextButton") and child ~= SectionBtn then
+                    local subLbl = child:FindFirstChildOfClass("TextLabel")
+                    if subLbl and string.sub(subLbl.Text, 1, 2) == "  " then
+                        isNextSection = true
+                    end
+                end
+                
+                if isNextSection then
+                    break
+                else
+                    if child:IsA("GuiObject") and child ~= SectionBtn then
+                        child.Visible = isOpen
+                    end
+                end
+            end
+        end
+    end)
 end
 
 function Elements.Button(Parent, Theme, Config)
@@ -470,7 +525,7 @@ function AuraPro:CreateKeyTab(Config)
         return
     end
 
-    local KeyGui = UI.Create("ScreenGui", CachedParent, { Name = "Aura_KeySystem_UI", ResetOnSpawn = false })
+    local KeyGui = UI.Create("ScreenGui", CachedParent, { Name = "Aura_KeySystem_UI", ResetOnSpawn = false, DisplayOrder = 999 })
     local MainFrame = UI.Create("Frame", KeyGui, {
         Size = UDim2.new(0, 380, 0, 230), Position = UDim2.new(0.5, -190, 0.5, -135),
         BackgroundTransparency = 1, BackgroundColor3 = SelectedTheme.Background
@@ -482,7 +537,7 @@ function AuraPro:CreateKeyTab(Config)
     TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {BackgroundTransparency = 0}):Play()
     TweenService:Create(UIScale, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = UserScale}):Play()
 
-    local TopBar = UI.Create("Frame", MainFrame, { Size = UDim2.new(1, -16, 0, 36), Position = UDim2.new(0, 8, 0, 8), BackgroundColor3 = SelectedTheme.Card })
+    local TopBar = UI.Create("Frame", MainFrame, { Size = UDim2.new(1, -16, 0, 36), Position = UDim2.new(0, 8, 0, 8), BackgroundColor3 = SelectedTheme.Card, Active = true })
     UI.Corner(TopBar, 6)
     MakeDraggable(MainFrame, TopBar)
 
@@ -562,7 +617,7 @@ function AuraPro:CreateWindow(Config)
     local activeConns = {}
     local savedData = LoadDataFromFile(self._configName)
 
-    local ScreenGui = UI.Create("ScreenGui", CachedParent, { Name = "Aura_Pro_UI", ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling })
+    local ScreenGui = UI.Create("ScreenGui", CachedParent, { Name = "Aura_Pro_UI", ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, DisplayOrder = 999 })
     local NotifContainer = UI.Create("Frame", ScreenGui, { Size = UDim2.new(0, 300, 1, -20), Position = UDim2.new(1, -310, 0, 10), BackgroundTransparency = 1, ZIndex = 9999 })
     UI.Create("UIListLayout", NotifContainer, { VerticalAlignment = Enum.VerticalAlignment.Bottom, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder })
 
@@ -589,13 +644,13 @@ function AuraPro:CreateWindow(Config)
     local MainScale = UI.Create("UIScale", MainFrame, { Scale = 0 })
     TweenService:Create(MainScale, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = UserScale}):Play()
 
-    local MinifiedGui = UI.Create("ScreenGui", CachedParent, { Name = "Aura_Minified_Icon", ResetOnSpawn = false, Enabled = false })
-    local FloatBtn = UI.Create("ImageButton", MinifiedGui, { Size = UDim2.new(0, 50, 0, 50), Position = UDim2.new(0, 50, 0, 200), BackgroundColor3 = SelectedTheme.Card, Image = HubImage ~= "" and HubImage or "rbxassetid://6023426915", AutoButtonColor = false })
-    UI.Corner(FloatBtn, 25)
-    UI.Stroke(FloatBtn, SelectedTheme.Accent, 2)
+    local MinifiedGui = UI.Create("ScreenGui", CachedParent, { Name = "Aura_Minified_Icon", ResetOnSpawn = false, Enabled = false, DisplayOrder = 999 })
+    local FloatBtn = UI.Create("ImageButton", MinifiedGui, { Size = UDim2.new(0, 64, 0, 64), Position = UDim2.new(0, 50, 0, 200), BackgroundColor3 = SelectedTheme.Card, Image = HubImage ~= "" and HubImage or "rbxassetid://6023426915", AutoButtonColor = false, Active = true })
+    UI.Corner(FloatBtn, 32)
+    UI.Stroke(FloatBtn, SelectedTheme.Accent, 3)
     MakeDraggable(FloatBtn, FloatBtn)
 
-    local TopBar = UI.Create("Frame", MainFrame, { Size = UDim2.new(1, -20, 0, 42), Position = UDim2.new(0, 10, 0, 10), BackgroundColor3 = SelectedTheme.Card })
+    local TopBar = UI.Create("Frame", MainFrame, { Size = UDim2.new(1, -20, 0, 42), Position = UDim2.new(0, 10, 0, 10), BackgroundColor3 = SelectedTheme.Card, Active = true })
     UI.Corner(TopBar, 8)
     MakeDraggable(MainFrame, TopBar)
 
@@ -719,3 +774,6 @@ function AuraPro:CreateWindow(Config)
 end
 
 return AuraPro
+
+
+Ask AI Assistant
