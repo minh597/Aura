@@ -1,4 +1,4 @@
--- Aura UI Pro - Main Entry with Remote Themes Link
+-- Aura UI Pro - Optimized & Secured Version (lamain.lua)
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
@@ -12,9 +12,7 @@ if CachedParent:FindFirstChild("Aura_KeySystem_UI") then CachedParent.Aura_KeySy
 if CachedParent:FindFirstChild("Aura_Minified_Icon") then CachedParent.Aura_Minified_Icon:Destroy() end
 
 local AuraPro = {
-    ConfigName = nil,
-    KeyConfigName = "AuraKey_Save.json",
-    ActiveConnections = {}
+    KeyConfigName = "AuraKey_Save.json"
 }
 
 -- Load Themes directly from the remote link
@@ -36,29 +34,30 @@ AuraPro.Themes = (SuccessTheme and RemoteThemes and RemoteThemes.Themes) or {
     }
 }
 
-function AuraPro:TrackConnection(Conn)
-    table.insert(self.ActiveConnections, Conn)
-    return Conn
+-- Private Helper Functions
+local function TrackConn(tbl, conn)
+    table.insert(tbl, conn)
+    return conn
 end
 
-function AuraPro:SaveConfig(FileName, Data)
-    if FileName and writefile then
-        pcall(function() writefile(FileName, HttpService:JSONEncode(Data)) end)
+local function SaveDataToFile(file, data)
+    if file and writefile then
+        pcall(function() writefile(file, HttpService:JSONEncode(data)) end)
     end
 end
 
-function AuraPro:LoadConfig(FileName)
-    if FileName and readfile and isfile and isfile(FileName) then
-        local Success, Decoded = pcall(function() return HttpService:JSONDecode(readfile(FileName)) end)
-        if Success then return Decoded end
+local function LoadDataFromFile(file)
+    if file and readfile and isfile and isfile(file) then
+        local success, decoded = pcall(function() return HttpService:JSONDecode(readfile(file)) end)
+        if success then return decoded end
     end
     return {}
 end
 
-function AuraPro:SetFlag(SavedData, Flag, Value)
-    if self.ConfigName then
-        SavedData[Flag] = Value
-        self:SaveConfig(self.ConfigName, SavedData)
+local function UpdateFlag(selfRef, savedData, flag, val)
+    if selfRef._configName then
+        savedData[flag] = val
+        SaveDataToFile(selfRef._configName, savedData)
     end
 end
 
@@ -78,42 +77,41 @@ function UI.Stroke(Obj, Color, Thickness)
     return UI.Create("UIStroke", Obj, { Color = Color, Thickness = Thickness or 1 })
 end
 
-local GlobalDragging = false
-local GlobalDragInput, GlobalDragStart, GlobalStartPos, GlobalTargetFrame
-
-AuraPro:TrackConnection(UserInputService.InputBegan:Connect(function(Input)
-    if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and GlobalTargetFrame then
-        GlobalDragging = true
-        GlobalDragStart = Input.Position
-        GlobalStartPos = GlobalTargetFrame.Position
+-- Global dragging handler for private use
+local gDragging, gDragInput, gDragStart, gStartPos, gTargetFrame
+UserInputService.InputBegan:Connect(function(input)
+    if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and gTargetFrame then
+        gDragging = true
+        gDragStart = input.Position
+        gStartPos = gTargetFrame.Position
     end
 end))
 
-AuraPro:TrackConnection(UserInputService.InputEnded:Connect(function(Input)
-    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-        GlobalDragging = false
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        gDragging = false
     end
 end))
 
-AuraPro:TrackConnection(UserInputService.InputChanged:Connect(function(Input)
-    if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
-        GlobalDragInput = Input
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        gDragInput = input
     end
-    if GlobalDragging and GlobalTargetFrame and GlobalDragInput == Input then
-        local Delta = Input.Position - GlobalDragStart
-        GlobalTargetFrame.Position = UDim2.new(GlobalStartPos.X.Scale, GlobalStartPos.X.Offset + Delta.X, GlobalStartPos.Y.Scale, GlobalStartPos.Y.Offset + Delta.Y)
+    if gDragging and gTargetFrame and gDragInput == input then
+        local delta = input.Position - gDragStart
+        gTargetFrame.Position = UDim2.new(gStartPos.X.Scale, gStartPos.X.Offset + delta.X, gStartPos.Y.Scale, gStartPos.Y.Offset + delta.Y)
     end
 end))
 
 local function MakeDraggable(Frame, Handle)
-    Handle.InputBegan:Connect(function(Input)
-        if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-            GlobalTargetFrame = Frame
+    Handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            gTargetFrame = Frame
         end
     end)
-    Handle.InputEnded:Connect(function(Input)
-        if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-            if GlobalTargetFrame == Frame then GlobalTargetFrame = nil end
+    Handle.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if gTargetFrame == Frame then gTargetFrame = nil end
         end
     end)
 end
@@ -127,7 +125,7 @@ function Elements.Label(Parent, Theme, Config)
         TextSize = 12, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left
     })
     local Obj = {}
-    function Obj:Set(Txt) Label.Text = Txt end
+    function Obj:Set(t) Label.Text = t end
     function Obj:Get() return Label.Text end
     return Obj
 end
@@ -176,10 +174,10 @@ function Elements.Button(Parent, Theme, Config)
     Btn.MouseButton1Click:Connect(function() pcall(Config.Callback or function() end) end)
 end
 
-function Elements.Toggle(Parent, Theme, SavedData, Config)
+function Elements.Toggle(Parent, Theme, SavedData, SelfRef, Config)
     local Flag = Config.Flag or Config.Name
     local Toggled = SavedData[Flag] ~= nil and SavedData[Flag] or (Config.Default or false)
-    AuraPro:SetFlag(SavedData, Flag, Toggled)
+    UpdateFlag(SelfRef, SavedData, Flag, Toggled)
 
     local Btn = UI.Create("TextButton", Parent, {
         Size = UDim2.new(0.98, 0, 0, 36), BackgroundColor3 = Theme.Element,
@@ -201,9 +199,9 @@ function Elements.Toggle(Parent, Theme, SavedData, Config)
     })
     UI.Corner(SwitchPin, 7)
 
-    local function SetState(State)
-        Toggled = State
-        AuraPro:SetFlag(SavedData, Flag, Toggled)
+    local function SetState(state)
+        Toggled = state
+        UpdateFlag(SelfRef, SavedData, Flag, Toggled)
         TweenService:Create(SwitchBG, TweenInfo.new(0.2), {BackgroundColor3 = Toggled and Theme.Accent or Theme.Border}):Play()
         TweenService:Create(SwitchPin, TweenInfo.new(0.2), {Position = Toggled and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)}):Play()
         pcall(Config.Callback or function() end, Toggled)
@@ -218,13 +216,13 @@ function Elements.Toggle(Parent, Theme, SavedData, Config)
     return Obj
 end
 
-function Elements.Slider(Parent, Theme, SavedData, Config)
+function Elements.Slider(Parent, Theme, SavedData, SelfRef, Config)
     local Flag = Config.Flag or Config.Name
     local Min = Config.Min or 0
     local Max = Config.Max or 100
     local Range = Max - Min
     local Value = SavedData[Flag] ~= nil and SavedData[Flag] or (Config.Default or Min)
-    AuraPro:SetFlag(SavedData, Flag, Value)
+    UpdateFlag(SelfRef, SavedData, Flag, Value)
 
     local Frame = UI.Create("Frame", Parent, { Size = UDim2.new(0.98, 0, 0, 48), BackgroundColor3 = Theme.Element })
     UI.Corner(Frame, 6)
@@ -254,34 +252,34 @@ function Elements.Slider(Parent, Theme, SavedData, Config)
     })
     UI.Corner(Fill, 3)
 
-    local function SetVal(Val)
-        Value = math.clamp(Val, Min, Max)
+    local function SetVal(val)
+        Value = math.clamp(val, Min, Max)
         ValLbl.Text = tostring(Value)
-        local Pos = Range > 0 and (Value - Min) / Range or 0
-        AuraPro:SetFlag(SavedData, Flag, Value)
-        TweenService:Create(Fill, TweenInfo.new(0.08), {Size = UDim2.new(Pos, 0, 1, 0)}):Play()
+        local pos = Range > 0 and (Value - Min) / Range or 0
+        UpdateFlag(SelfRef, SavedData, Flag, Value)
+        TweenService:Create(Fill, TweenInfo.new(0.08), {Size = UDim2.new(pos, 0, 1, 0)}):Play()
         pcall(Config.Callback or function() end, Value)
     end
 
-    Bar.InputBegan:Connect(function(Input)
-        if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-            local ActiveSlider = true
+    Bar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            local activeSlider = true
             local conn1, conn2
             conn1 = UserInputService.InputChanged:Connect(function(inp)
-                if ActiveSlider and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
-                    local Pos = math.clamp((inp.Position.X - Bar.AbsolutePosition.X) / Bar.AbsoluteSize.X, 0, 1)
-                    SetVal(math.floor(Min + Range * Pos))
+                if activeSlider and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
+                    local pos = math.clamp((inp.Position.X - Bar.AbsolutePosition.X) / Bar.AbsoluteSize.X, 0, 1)
+                    SetVal(math.floor(Min + Range * pos))
                 end
             end)
             conn2 = UserInputService.InputEnded:Connect(function(inp)
                 if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
-                    ActiveSlider = false
+                    activeSlider = false
                     if conn1 then conn1:Disconnect() end
                     if conn2 then conn2:Disconnect() end
                 end
             end)
-            local Pos = math.clamp((Input.Position.X - Bar.AbsolutePosition.X) / Bar.AbsoluteSize.X, 0, 1)
-            SetVal(math.floor(Min + Range * Pos))
+            local pos = math.clamp((input.Position.X - Bar.AbsolutePosition.X) / Bar.AbsoluteSize.X, 0, 1)
+            SetVal(math.floor(Min + Range * pos))
         end
     end)
 
@@ -293,13 +291,13 @@ function Elements.Slider(Parent, Theme, SavedData, Config)
     return Obj
 end
 
-function Elements.Dropdown(Parent, Theme, SavedData, Config)
+function Elements.Dropdown(Parent, Theme, SavedData, SelfRef, Config)
     local Flag = Config.Flag or Config.Name
     local Options = Config.Options or {}
     local SavedVal = SavedData[Flag]
     local Selected = SavedVal and table.find(Options, SavedVal) and SavedVal or (Config.Default or Options[1] or "")
     local DropdownOpen = false
-    AuraPro:SetFlag(SavedData, Flag, Selected)
+    UpdateFlag(SelfRef, SavedData, Flag, Selected)
 
     local Frame = UI.Create("Frame", Parent, { Size = UDim2.new(0.98, 0, 0, 36), BackgroundColor3 = Theme.Element, ClipsDescendants = true })
     UI.Corner(Frame, 6)
@@ -341,7 +339,7 @@ function Elements.Dropdown(Parent, Theme, SavedData, Config)
                 DropdownOpen = false
                 TweenService:Create(Frame, TweenInfo.new(0.2), {Size = UDim2.new(0.98, 0, 0, 36)}):Play()
                 TweenService:Create(OptContainer, TweenInfo.new(0.2), {Size = UDim2.new(1, -16, 0, 0)}):Play()
-                AuraPro:SetFlag(SavedData, Flag, Selected)
+                UpdateFlag(SelfRef, SavedData, Flag, Selected)
                 pcall(Config.Callback or function() end, Selected)
             end)
         end
@@ -350,10 +348,10 @@ function Elements.Dropdown(Parent, Theme, SavedData, Config)
 
     ValBtn.MouseButton1Click:Connect(function()
         DropdownOpen = not DropdownOpen
-        local TargetH = DropdownOpen and math.clamp(#Options * 32 + 48, 48, 160) or 36
-        local ContH = DropdownOpen and (TargetH - 48) or 0
-        TweenService:Create(Frame, TweenInfo.new(0.2), {Size = UDim2.new(0.98, 0, 0, TargetH)}):Play()
-        TweenService:Create(OptContainer, TweenInfo.new(0.2), {Size = UDim2.new(1, -16, 0, ContH)}):Play()
+        local targetH = DropdownOpen and math.clamp(#Options * 32 + 48, 48, 160) or 36
+        local contH = DropdownOpen and (targetH - 48) or 0
+        TweenService:Create(Frame, TweenInfo.new(0.2), {Size = UDim2.new(0.98, 0, 0, targetH)}):Play()
+        TweenService:Create(OptContainer, TweenInfo.new(0.2), {Size = UDim2.new(1, -16, 0, contH)}):Play()
     end)
 
     local Obj = {}
@@ -369,10 +367,10 @@ function Elements.Dropdown(Parent, Theme, SavedData, Config)
     return Obj
 end
 
-function Elements.Textbox(Parent, Theme, SavedData, Config)
+function Elements.Textbox(Parent, Theme, SavedData, SelfRef, Config)
     local Flag = Config.Flag or Config.Name
     local TextVal = SavedData[Flag] ~= nil and SavedData[Flag] or (Config.Default or "")
-    AuraPro:SetFlag(SavedData, Flag, TextVal)
+    UpdateFlag(SelfRef, SavedData, Flag, TextVal)
 
     local Frame = UI.Create("Frame", Parent, { Size = UDim2.new(0.98, 0, 0, 52), BackgroundColor3 = Theme.Element })
     UI.Corner(Frame, 6)
@@ -392,14 +390,14 @@ function Elements.Textbox(Parent, Theme, SavedData, Config)
     })
     UI.Corner(Box, 4)
 
-    local function SetVal(Val, Trigger)
-        TextVal = Val
-        Box.Text = Val
-        AuraPro:SetFlag(SavedData, Flag, TextVal)
-        if Trigger then pcall(Config.Callback or function() end, TextVal, true) end
+    local function SetVal(val, trigger)
+        TextVal = val
+        Box.Text = val
+        UpdateFlag(SelfRef, SavedData, Flag, TextVal)
+        if trigger then pcall(Config.Callback or function() end, TextVal, true) end
     end
 
-    Box.FocusLost:Connect(function(Enter) SetVal(Box.Text, true) end)
+    Box.FocusLost:Connect(function(enter) SetVal(Box.Text, true) end)
 
     local Obj = {}
     function Obj:GetValue() return Box.Text end
@@ -407,11 +405,11 @@ function Elements.Textbox(Parent, Theme, SavedData, Config)
     return Obj
 end
 
-function Elements.Keybind(Parent, Theme, SavedData, Config)
+function Elements.Keybind(Parent, Theme, SavedData, SelfRef, ActiveConns, Config)
     local Flag = Config.Flag or Config.Name
     local SavedKeyName = SavedData[Flag]
     local DefaultKey = SavedKeyName and Enum.KeyCode[SavedKeyName] or (Config.Default or Enum.KeyCode.E)
-    AuraPro:SetFlag(SavedData, Flag, typeof(DefaultKey) == "EnumItem" and DefaultKey.Name or tostring(DefaultKey))
+    UpdateFlag(SelfRef, SavedData, Flag, typeof(DefaultKey) == "EnumItem" and DefaultKey.Name or tostring(DefaultKey))
 
     local Frame = UI.Create("Frame", Parent, { Size = UDim2.new(0.98, 0, 0, 36), BackgroundColor3 = Theme.Element })
     UI.Corner(Frame, 6)
@@ -430,26 +428,27 @@ function Elements.Keybind(Parent, Theme, SavedData, Config)
     })
     UI.Corner(KeyBtn, 4)
 
-    local CurrentKey = DefaultKey
-    local Listening = false
-    KeyBtn.MouseButton1Click:Connect(function() Listening = true; KeyBtn.Text = "..." end)
+    local currentKey = DefaultKey
+    local listening = false
+    KeyBtn.MouseButton1Click:Connect(function() listening = true; KeyBtn.Text = "..." end)
 
-    AuraPro:TrackConnection(UserInputService.InputBegan:Connect(function(Input, Proc)
-        if Listening and not Proc and Input.UserInputType == Enum.UserInputType.Keyboard then
-            Listening = false
-            CurrentKey = Input.KeyCode
-            KeyBtn.Text = CurrentKey.Name
-            AuraPro:SetFlag(SavedData, Flag, CurrentKey.Name)
-            pcall(Config.Callback or function() end, CurrentKey)
+    TrackConn(ActiveConns, UserInputService.InputBegan:Connect(function(input, proc)
+        if listening and not proc and input.UserInputType == Enum.UserInputType.Keyboard then
+            listening = false
+            currentKey = input.KeyCode
+            KeyBtn.Text = currentKey.Name
+            UpdateFlag(SelfRef, SavedData, Flag, currentKey.Name)
+            pcall(Config.Callback or function() end, currentKey)
         end
     end))
 
     local Obj = {}
-    function Obj:GetValue() return CurrentKey end
+    function Obj:GetValue() return currentKey end
     return Obj
 end
 
-function AuraPro:CreateKeySystem(Config)
+-- KeyTab System (Renamed & Upgraded with optional Icon)
+function AuraPro:CreateKeyTab(Config)
     Config = Config or {}
     local TitleText = Config.Name or "Aura UI - Key System"
     local CorrectKey = Config.Key or "Aura2026"
@@ -458,8 +457,9 @@ function AuraPro:CreateKeySystem(Config)
     local UserScale = (Config.Scale or 1.0) * 1.1
     local SuccessCallback = Config.Callback or function() end
     local KeySaveFile = Config.KeySave or self.KeyConfigName
+    local KeyIcon = Config.Image or ""
 
-    local KeyData = self:LoadConfig(KeySaveFile)
+    local KeyData = LoadDataFromFile(KeySaveFile)
     if KeyData.SavedKey == CorrectKey then
         pcall(SuccessCallback)
         return
@@ -467,7 +467,7 @@ function AuraPro:CreateKeySystem(Config)
 
     local KeyGui = UI.Create("ScreenGui", CachedParent, { Name = "Aura_KeySystem_UI", ResetOnSpawn = false })
     local MainFrame = UI.Create("Frame", KeyGui, {
-        Size = UDim2.new(0, 380, 0, 220), Position = UDim2.new(0.5, -190, 0.5, -130),
+        Size = UDim2.new(0, 380, 0, 230), Position = UDim2.new(0.5, -190, 0.5, -135),
         BackgroundTransparency = 1, BackgroundColor3 = SelectedTheme.Background
     })
     UI.Corner(MainFrame, 10)
@@ -481,10 +481,19 @@ function AuraPro:CreateKeySystem(Config)
     UI.Corner(TopBar, 6)
     MakeDraggable(MainFrame, TopBar)
 
-    UI.Create("TextLabel", TopBar, {
-        Size = UDim2.new(1, -12, 1, 0), Position = UDim2.new(0, 10, 0, 0), BackgroundTransparency = 1,
-        Text = TitleText, TextColor3 = SelectedTheme.Text, TextSize = 13, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left
-    })
+    if KeyIcon ~= "" then
+        local IconObj = UI.Create("ImageLabel", TopBar, { Size = UDim2.new(0, 22, 0, 22), Position = UDim2.new(0, 8, 0.5, -11), BackgroundTransparency = 1, Image = KeyIcon })
+        UI.Corner(IconObj, 4)
+        UI.Create("TextLabel", TopBar, {
+            Size = UDim2.new(1, -38, 1, 0), Position = UDim2.new(0, 34, 0, 0), BackgroundTransparency = 1,
+            Text = TitleText, TextColor3 = SelectedTheme.Text, TextSize = 13, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left
+        })
+    else
+        UI.Create("TextLabel", TopBar, {
+            Size = UDim2.new(1, -16, 1, 0), Position = UDim2.new(0, 10, 0, 0), BackgroundTransparency = 1,
+            Text = TitleText, TextColor3 = SelectedTheme.Text, TextSize = 13, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left
+        })
+    end
 
     local KeyBox = UI.Create("TextBox", MainFrame, {
         Size = UDim2.new(1, -24, 0, 38), Position = UDim2.new(0, 12, 0, 58), BackgroundColor3 = SelectedTheme.Element,
@@ -508,11 +517,11 @@ function AuraPro:CreateKeySystem(Config)
         if KeyBox.Text == CorrectKey then
             SubmitBtn.Text = "SUCCESS!"
             SubmitBtn.BackgroundColor3 = SelectedTheme.Success
-            self:SaveConfig(KeySaveFile, {SavedKey = CorrectKey})
+            SaveDataToFile(KeySaveFile, {SavedKey = CorrectKey})
             TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {BackgroundTransparency = 1}):Play()
-            local CloseAnim = TweenService:Create(UIScale, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Scale = 0})
-            CloseAnim:Play()
-            CloseAnim.Completed:Connect(function() KeyGui:Destroy(); pcall(SuccessCallback) end)
+            local closeAnim = TweenService:Create(UIScale, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Scale = 0})
+            closeAnim:Play()
+            closeAnim.Completed:Connect(function() KeyGui:Destroy(); pcall(SuccessCallback) end)
         else
             SubmitBtn.Text = "INVALID KEY!"
             SubmitBtn.BackgroundColor3 = SelectedTheme.Danger
@@ -530,6 +539,11 @@ function AuraPro:CreateKeySystem(Config)
     end)
 end
 
+-- Backward compatibility wrapper for KeySystem
+function AuraPro:CreateKeySystem(Config)
+    return self:CreateKeyTab(Config)
+end
+
 function AuraPro:CreateWindow(Config)
     Config = Config or {}
     local TitleText = Config.Name or "Aura UI Pro"
@@ -540,27 +554,28 @@ function AuraPro:CreateWindow(Config)
     local UserScale = Config.Scale or 1.2
     local HubImage = Config.Image or ""
 
-    self.ConfigName = Config.ConfigSave or nil
-    local SavedData = self:LoadConfig(self.ConfigName)
+    self._configName = Config.ConfigSave or nil
+    local activeConns = {}
+    local savedData = LoadDataFromFile(self._configName)
 
     local ScreenGui = UI.Create("ScreenGui", CachedParent, { Name = "Aura_Pro_UI", ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling })
     local NotifContainer = UI.Create("Frame", ScreenGui, { Size = UDim2.new(0, 300, 1, -20), Position = UDim2.new(1, -310, 0, 10), BackgroundTransparency = 1, ZIndex = 9999 })
     UI.Create("UIListLayout", NotifContainer, { VerticalAlignment = Enum.VerticalAlignment.Bottom, Padding = UDim.new(0, 8) })
 
-    function AuraPro:Notify(NotifConfig)
-        NotifConfig = NotifConfig or {}
-        local Card = UI.Create("Frame", NotifContainer, { Size = UDim2.new(1, 0, 0, 68), BackgroundColor3 = SelectedTheme.Card, Position = UDim2.new(1, 350, 0, 0) })
-        UI.Corner(Card, 8)
-        UI.Stroke(Card, SelectedTheme.Accent)
+    function AuraPro:Notify(notifConfig)
+        notifConfig = notifConfig or {}
+        local card = UI.Create("Frame", NotifContainer, { Size = UDim2.new(1, 0, 0, 68), BackgroundColor3 = SelectedTheme.Card, Position = UDim2.new(1, 350, 0, 0) })
+        UI.Corner(card, 8)
+        UI.Stroke(card, SelectedTheme.Accent)
 
-        UI.Create("TextLabel", Card, { Size = UDim2.new(1, -16, 0, 22), Position = UDim2.new(0, 10, 0, 6), BackgroundTransparency = 1, Text = NotifConfig.Title or "Notification", TextColor3 = SelectedTheme.Accent, TextSize = 13, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left })
-        UI.Create("TextLabel", Card, { Size = UDim2.new(1, -16, 0, 34), Position = UDim2.new(0, 10, 0, 28), BackgroundTransparency = 1, Text = NotifConfig.Content or "", TextColor3 = SelectedTheme.SubText, TextSize = 11, Font = Enum.Font.Gotham, TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true })
+        UI.Create("TextLabel", card, { Size = UDim2.new(1, -16, 0, 22), Position = UDim2.new(0, 10, 0, 6), BackgroundTransparency = 1, Text = notifConfig.Title or "Notification", TextColor3 = SelectedTheme.Accent, TextSize = 13, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left })
+        UI.Create("TextLabel", card, { Size = UDim2.new(1, -16, 0, 34), Position = UDim2.new(0, 10, 0, 28), BackgroundTransparency = 1, Text = notifConfig.Content or "", TextColor3 = SelectedTheme.SubText, TextSize = 11, Font = Enum.Font.Gotham, TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true })
 
-        TweenService:Create(Card, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0, 0, 0, 0)}):Play()
-        task.delay(NotifConfig.Duration or 3.5, function()
-            local Out = TweenService:Create(Card, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = UDim2.new(1, 350, 0, 0)})
-            Out:Play()
-            Out.Completed:Connect(function() Card:Destroy() end)
+        TweenService:Create(card, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0, 0, 0, 0)}):Play()
+        task.delay(notifConfig.Duration or 3.5, function()
+            local out = TweenService:Create(card, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = UDim2.new(1, 350, 0, 0)})
+            out:Play()
+            out.Completed:Connect(function() card:Destroy() end)
         end)
     end
 
@@ -594,9 +609,9 @@ function AuraPro:CreateWindow(Config)
     local CloseBtn = UI.Create("ImageButton", Controls, { Size = UDim2.new(0, 28, 0, 28), Position = UDim2.new(0, 34, 0.5, -14), BackgroundColor3 = Color3.fromRGB(235, 60, 60), BackgroundTransparency = 0.85, Image = "rbxassetid://6035047409", ImageColor3 = Color3.fromRGB(255, 100, 100) })
     UI.Corner(CloseBtn, 6)
 
-    local function ToggleUI(State)
-        MainFrame.Visible = State
-        MinifiedGui.Enabled = not State
+    local function ToggleUI(state)
+        MainFrame.Visible = state
+        MinifiedGui.Enabled = not state
     end
 
     MinBtn.MouseButton1Click:Connect(function() ToggleUI(false) end)
@@ -604,20 +619,20 @@ function AuraPro:CreateWindow(Config)
 
     local WindowObj = {CurrentTab = nil, Tabs = {}}
     function WindowObj:Destroy()
-        for _, Conn in ipairs(self.ActiveConnections) do if Conn then Conn:Disconnect() end end
-        table.clear(self.ActiveConnections)
+        for _, conn in ipairs(activeConns) do if conn then conn:Disconnect() end end
+        table.clear(activeConns)
         ScreenGui:Destroy()
         MinifiedGui:Destroy()
     end
 
     CloseBtn.MouseButton1Click:Connect(function()
-        local Anim = TweenService:Create(MainScale, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Scale = 0})
-        Anim:Play()
-        Anim.Completed:Connect(function() WindowObj:Destroy() end)
+        local anim = TweenService:Create(MainScale, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Scale = 0})
+        anim:Play()
+        anim.Completed:Connect(function() WindowObj:Destroy() end)
     end)
 
-    self:TrackConnection(UserInputService.InputBegan:Connect(function(Input, Proc)
-        if not Proc and Input.KeyCode == ToggleKey then ToggleUI(not MainFrame.Visible) end
+    TrackConn(activeConns, UserInputService.InputBegan:Connect(function(input, proc)
+        if not proc and input.KeyCode == ToggleKey then ToggleUI(not MainFrame.Visible) end
     end))
 
     local TabBar = UI.Create("Frame", MainFrame, { Size = UDim2.new(0, 150, 1, -65), Position = UDim2.new(0, 10, 0, 58), BackgroundColor3 = SelectedTheme.Card })
@@ -629,9 +644,17 @@ function AuraPro:CreateWindow(Config)
     local PagesArea = UI.Create("Frame", MainFrame, { Size = UDim2.new(1, -170, 1, -65), Position = UDim2.new(0, 170, 0, 58), BackgroundColor3 = SelectedTheme.Card, ClipsDescendants = true })
     UI.Corner(PagesArea, 8)
 
-    function WindowObj:CreateTab(Name)
-        local TabBtn = UI.Create("TextButton", TabScroll, { Size = UDim2.new(0, 138, 0, 32), BackgroundColor3 = SelectedTheme.Element, BackgroundTransparency = 0.7, Text = Name, TextColor3 = SelectedTheme.SubText, TextSize = 12, Font = Enum.Font.GothamMedium })
+    -- Upgraded CreateTab supporting Icon parameter
+    function WindowObj:CreateTab(Name, TabImage)
+        local TabBtn = UI.Create("TextButton", TabScroll, { Size = UDim2.new(0, 138, 0, 32), BackgroundColor3 = SelectedTheme.Element, BackgroundTransparency = 0.7, Text = "", TextColor3 = SelectedTheme.SubText, TextSize = 12, Font = Enum.Font.GothamMedium })
         UI.Corner(TabBtn, 6)
+
+        if TabImage and TabImage ~= "" then
+            UI.Create("ImageLabel", TabBtn, { Size = UDim2.new(0, 18, 0, 18), Position = UDim2.new(0, 8, 0.5, -9), BackgroundTransparency = 1, Image = TabImage })
+            UI.Create("TextLabel", TabBtn, { Size = UDim2.new(1, -32, 1, 0), Position = UDim2.new(0, 30, 0, 0), BackgroundTransparency = 1, Text = Name, TextColor3 = SelectedTheme.SubText, TextSize = 12, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left })
+        else
+            UI.Create("TextLabel", TabBtn, { Size = UDim2.new(1, -16, 1, 0), Position = UDim2.new(0, 10, 0, 0), BackgroundTransparency = 1, Text = Name, TextColor3 = SelectedTheme.SubText, TextSize = 12, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left })
+        end
 
         local Page = UI.Create("ScrollingFrame", PagesArea, { Size = UDim2.new(1, -12, 1, -12), Position = UDim2.new(0, 6, 0, 6), BackgroundTransparency = 1, Visible = false, ScrollBarThickness = 3 })
         local PageLayout = UI.Create("UIListLayout", Page, { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6) })
@@ -639,20 +662,35 @@ function AuraPro:CreateWindow(Config)
             Page.CanvasSize = UDim2.new(0, 0, 0, PageLayout.AbsoluteContentSize.Y + 12)
         end)
 
-        TabBtn.MouseButton1Click:Connect(function()
+        local function SelectThisTab()
             if WindowObj.CurrentTab == Page then return end
-            for _, t in ipairs(WindowObj.Tabs) do t.Page.Visible = false; t.Btn.BackgroundTransparency = 0.7; t.Btn.TextColor3 = SelectedTheme.SubText end
+            for _, t in ipairs(WindowObj.Tabs) do
+                t.Page.Visible = false
+                t.Btn.BackgroundTransparency = 0.7
+                t.Btn.TextColor3 = SelectedTheme.SubText
+                for _, child in ipairs(t.Btn:GetChildren()) do
+                    if child:IsA("TextLabel") then child.TextColor3 = SelectedTheme.SubText end
+                end
+            end
             WindowObj.CurrentTab = Page
             Page.Visible = true
             TabBtn.BackgroundTransparency = 0
             TabBtn.TextColor3 = SelectedTheme.Text
-        end)
+            for _, child in ipairs(TabBtn:GetChildren()) do
+                if child:IsA("TextLabel") then child.TextColor3 = SelectedTheme.Text end
+            end
+        end
+
+        TabBtn.MouseButton1Click:Connect(SelectThisTab)
 
         if #WindowObj.Tabs == 0 then
             WindowObj.CurrentTab = Page
             Page.Visible = true
             TabBtn.BackgroundTransparency = 0
             TabBtn.TextColor3 = SelectedTheme.Text
+            for _, child in ipairs(TabBtn:GetChildren()) do
+                if child:IsA("TextLabel") then child.TextColor3 = SelectedTheme.Text end
+            end
         end
 
         table.insert(WindowObj.Tabs, {Btn = TabBtn, Page = Page})
@@ -663,11 +701,11 @@ function AuraPro:CreateWindow(Config)
         function TabElements:CreateDivider() return Elements.Divider(Page, SelectedTheme) end
         function TabElements:CreateSection(t) return Elements.Section(Page, SelectedTheme, t) end
         function TabElements:CreateButton(c) return Elements.Button(Page, SelectedTheme, c) end
-        function TabElements:CreateToggle(c) return Elements.Toggle(Page, SelectedTheme, SavedData, c) end
-        function TabElements:CreateSlider(c) return Elements.Slider(Page, SelectedTheme, SavedData, c) end
-        function TabElements:CreateDropdown(c) return Elements.Dropdown(Page, SelectedTheme, SavedData, c) end
-        function TabElements:CreateTextbox(c) return Elements.Textbox(Page, SelectedTheme, SavedData, c) end
-        function TabElements:CreateKeybind(c) return Elements.Keybind(Page, SelectedTheme, SavedData, c) end
+        function TabElements:CreateToggle(c) return Elements.Toggle(Page, SelectedTheme, savedData, AuraPro, c) end
+        function TabElements:CreateSlider(c) return Elements.Slider(Page, SelectedTheme, savedData, AuraPro, c) end
+        function TabElements:CreateDropdown(c) return Elements.Dropdown(Page, SelectedTheme, savedData, AuraPro, c) end
+        function TabElements:CreateTextbox(c) return Elements.Textbox(Page, SelectedTheme, savedData, AuraPro, c) end
+        function TabElements:CreateKeybind(c) return Elements.Keybind(Page, SelectedTheme, savedData, AuraPro, activeConns, c) end
 
         return TabElements
     end
