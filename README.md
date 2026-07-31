@@ -128,6 +128,19 @@ Tab:CreateDropdown({
     Default = 1,
     Callback = function(selected) end  -- string
 })
+
+-- MultiSelect: chọn nhiều mục
+Tab:CreateDropdown({
+    Name = "Multi Select",
+    Options = {"Option1", "Option2", "Option3"},
+    Default = {"Option1"},  -- table for multi
+    MultiSelect = true,
+    Callback = function(selectedList)  -- table
+        for _, item in ipairs(selectedList) do
+            print(item)
+        end
+    end
+})
 ```
 
 ### Textbox
@@ -154,6 +167,17 @@ Tab:CreateKeybind({
 ## Themes
 
 `Dark`, `Midnight`, `Crimson`, `Emerald`, `Amethyst`, `Sunset`, `Cyberpunk`, `Nordic`
+
+---
+
+## Features
+
+- ✅ Notification/Toast (`AuraPro:Notify`)
+- ✅ MultiDropdown (`MultiSelect = true`)
+- ✅ Config Save/Load (`ConfigSave`)
+- ✅ Destroy UI (`Window:Destroy()`)
+- ⏳ ColorPicker (sắp ra)
+- ⏳ Search trong Dropdown (sắp ra)
 
 ---
 
