@@ -86,43 +86,23 @@ function UI.Stroke(Obj, Color, Thickness)
     return UI.Create("UIStroke", Obj, { Color = Color, Thickness = Thickness or 1 })
 end
 
-local gDragging, gDragInput, gDragStart, gStartPos, gTargetFrame
-UserInputService.InputBegan:Connect(function(input)
-    if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and gTargetFrame then
-        gDragging = true
-        gDragStart = input.Position
-        gStartPos = gTargetFrame.Position
-    end
-end)
+local gDragging, gDragStart, gStartPos, gTargetFrame
+local activeDragInput = nil
 
 UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+    if input == activeDragInput then
         gDragging = false
+        activeDragInput = nil
+        gTargetFrame = nil
     end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        gDragInput = input
-    end
-    if gDragging and gTargetFrame and gDragInput == input then
+    if gDragging and gTargetFrame and input == activeDragInput then
         local delta = input.Position - gDragStart
         gTargetFrame.Position = UDim2.new(gStartPos.X.Scale, gStartPos.X.Offset + delta.X, gStartPos.Y.Scale, gStartPos.Y.Offset + delta.Y)
     end
 end)
-
-local function MakeDraggable(Frame, Handle)
-    Handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            gTargetFrame = Frame
-        end
-    end)
-    Handle.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            if gTargetFrame == Frame then gTargetFrame = nil end
-        end
-    end)
-end
 
 local Elements = {}
 
