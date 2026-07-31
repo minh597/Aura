@@ -41,12 +41,12 @@ AuraPro:CreateWindow({
 
 ---
 
-## Window:Notify
+## AuraPro:Notify
 
 Show notification popup.
 
 ```lua
-Window:Notify({
+AuraPro:Notify({
     Title = "Title",
     Content = "Message...",
     Duration = 3.5  -- seconds
@@ -162,7 +162,6 @@ Tab:CreateKeybind({
 ```lua
 local AuraPro = loadstring(game:HttpGet("https://raw.githubusercontent.com/minh597/Aura/refs/heads/main/AuraMain.lua"))()
 
--- Optional key system
 AuraPro:CreateKeySystem({
     Name = "My Script",
     Key = "KEY123",
@@ -178,7 +177,8 @@ AuraPro:CreateKeySystem({
         Tab:CreateToggle({ Name = "Enabled", Default = true, Callback = function(v) end })
         Tab:CreateSlider({ Name = "Speed", Min = 10, Max = 100, Default = 50, Callback = function(v) end })
 
-        Window:Notify({ Title = "Ready!", Content = "Script loaded." })
+        AuraPro:Notify({ Title = "Ready!", Content = "Script loaded." })
+        -- Window:Destroy() -- destroy UI
     end
 })
 ```
