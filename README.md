@@ -1,19 +1,6 @@
 # Aura Pro UI Library
 
-A powerful, lightweight, and customizable UI library for Roblox games.
-
-![Version](https://img.shields.io/badge/version-2.5.0-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-
-## Features
-
-- 🎨 **8 Built-in Themes** - Dark, Midnight, Crimson, Emerald, Amethyst, Sunset, Cyberpunk, Nordic
-- 🪟 **Draggable Windows** - Smooth drag functionality with minify/close controls
-- 📑 **Tab-based Navigation** - Organize content with multiple tabs
-- 💾 **Persistent Config** - Save and load user preferences automatically
-- ⌨️ **Keybind System** - Customizable keyboard shortcuts
-- 🎯 **Rich UI Elements** - Labels, Paragraphs, Buttons, Toggles, Sliders, Dropdowns, Textboxes, Keybinds
-- ✨ **Smooth Animations** - Tween-based hover effects and transitions
+A lightweight, customizable UI library for Roblox games.
 
 ## Installation
 
@@ -21,66 +8,75 @@ A powerful, lightweight, and customizable UI library for Roblox games.
 loadstring(game:HttpGet("https://raw.githubusercontent.com/minh597/Aura/refs/heads/main/AuraMain.lua"))()
 ```
 
-Or copy `AuraMain.lua` and `Themes.lua` into your Roblox project.
+---
 
-## Quick Start
+## API Reference
 
-```lua
-local AuraPro = loadstring(game:HttpGet("https://raw.githubusercontent.com/minh597/Aura/refs/heads/main/AuraMain.lua"))()
+### AuraPro.CreateWindow(config)
 
--- Create a new window
-local Window = AuraPro.CreateWindow({
-    Title = "My Script",
-    ToggleKey = Enum.KeyCode.RightShift
-})
+Creates a new UI window.
 
--- Create a tab
-local Tab = Window:CreateTab("Home", "rbxassetid://6031091004")
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `Title` | string | ✅ | Window title text |
+| `ToggleKey` | Enum.KeyCode | ✅ | Key to toggle window visibility |
+| `HubImage` | string | ❌ | Hub icon image ID (e.g., `"rbxassetid://6031091004"`) |
 
--- Add UI elements
-Tab:CreateLabel({ Name = "Welcome to Aura!" })
-Tab:CreateParagraph({ Title = "Getting Started", Content = "Build your UI with ease." })
-Tab:CreateButton({ Name = "Click Me", Callback = function()
-    print("Button clicked!")
-end })
-Tab:CreateToggle({ Name = "Enable Feature", Flag = "feature_enabled", Default = false })
-```
+**Returns:** `Window` object
+
+### Window:CreateTab(name, imageId)
+
+Creates a new tab in the window.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `name` | string | ✅ | Tab display name |
+| `imageId` | string | ❌ | Tab icon image ID |
+
+**Returns:** `TabElements` object with element creation methods
+
+---
 
 ## UI Elements
 
 ### Label
+Simple text display.
 ```lua
-Tab:CreateLabel({ Name = "Simple Label" })
+Tab:CreateLabel({ Name = "Welcome!" })
 ```
 
 ### Paragraph
+Title and description box.
 ```lua
 Tab:CreateParagraph({
-    Title = "Section Title",
-    Content = "Description text goes here..."
+    Title = "Information",
+    Content = "Your description here..."
 })
 ```
 
 ### Button
+Clickable button with callback.
 ```lua
 Tab:CreateButton({
-    Name = "Execute Action",
+    Name = "Execute",
     Callback = function()
-        -- Your code here
+        print("Clicked!")
     end
 })
 ```
 
 ### Toggle
+On/off switch with saved state.
 ```lua
 Tab:CreateToggle({
-    Name = "Enable Option",
-    Flag = "option_flag",     -- Unique flag for saving
-    Default = false           -- Default state
+    Name = "Enable Feature",
+    Flag = "feature_enabled",    -- Unique flag for saving
+    Default = false               -- Default state
 })
 ```
 
 ### Slider
+Numeric slider with min/max values.
 ```lua
 Tab:CreateSlider({
     Name = "Volume",
@@ -88,7 +84,7 @@ Tab:CreateSlider({
     Min = 0,
     Max = 100,
     Default = 50,
-    Increment = 1,
+    Increment = 1,                -- Step size
     Callback = function(value)
         print("Volume:", value)
     end
@@ -96,12 +92,13 @@ Tab:CreateSlider({
 ```
 
 ### Dropdown
+Selection list with options.
 ```lua
 Tab:CreateDropdown({
-    Name = "Select Mode",
+    Name = "Mode",
     Flag = "mode",
-    Options = {"Easy", "Medium", "Hard"},
-    Default = 1,
+    Options = {"Option1", "Option2", "Option3"},
+    Default = 1,                   -- Default selected index
     Callback = function(selected)
         print("Selected:", selected)
     end
@@ -109,11 +106,12 @@ Tab:CreateDropdown({
 ```
 
 ### Textbox
+Text input field.
 ```lua
 Tab:CreateTextbox({
-    Name = "Enter Name",
-    Flag = "player_name",
-    Placeholder = "Your name...",
+    Name = "Username",
+    Flag = "username",
+    Placeholder = "Enter name...",
     Default = "",
     Callback = function(value)
         print("Name:", value)
@@ -122,6 +120,7 @@ Tab:CreateTextbox({
 ```
 
 ### Keybind
+Keyboard shortcut binder.
 ```lua
 Tab:CreateKeybind({
     Name = "Toggle UI",
@@ -134,68 +133,42 @@ Tab:CreateKeybind({
 ```
 
 ### Section
+Styled section header text.
 ```lua
-Tab:CreateSection("Settings")
+Tab:CreateSection("SETTINGS")
 ```
 
 ### Divider
+Horizontal separator line.
 ```lua
 Tab:CreateDivider()
 ```
 
-## Themes
+---
 
-Aura comes with 8 beautiful themes:
-
-| Theme | Accent Color | Description |
-|-------|--------------|-------------|
-| Dark | Indigo (#6366F1) | Classic dark theme |
-| Midnight | Sky Blue (#0EA5E9) | Deep blue variant |
-| Crimson | Rose Red (#E11D48) | Bold red accent |
-| Emerald | Green (#10B981) | Nature-inspired |
-| Amethyst | Purple (#8B5CF6) | Purple tones |
-| Sunset | Orange (#F97316) | Warm sunset vibes |
-| Cyberpunk | Cyan (#00F0FF) | Neon cyberpunk style |
-| Nordic | Teal (#88C0D0) | Clean Nordic design |
-
-### Using Remote Themes
-
-Themes are automatically loaded from the GitHub repository:
+## Quick Example
 
 ```lua
--- This is handled automatically by AuraPro
--- Themes are fetched from: https://raw.githubusercontent.com/minh597/Aura/refs/heads/main/Themes.lua
+local AuraPro = loadstring(game:HttpGet("https://raw.githubusercontent.com/minh597/Aura/refs/heads/main/AuraMain.lua"))()
+
+local Window = AuraPro.CreateWindow({
+    Title = "My Script",
+    ToggleKey = Enum.KeyCode.RightShift
+})
+
+local Tab = Window:CreateTab("Home", "rbxassetid://6031091004")
+
+Tab:CreateSection("Main")
+Tab:CreateLabel({ Name = "Welcome to Aura!" })
+Tab:CreateToggle({ Name = "Enabled", Flag = "enabled", Default = true })
+Tab:CreateSlider({ Name = "Speed", Flag = "speed", Min = 10, Max = 100, Default = 50 })
+Tab:CreateButton({ Name = "Execute", Callback = function() print("Done!") end })
 ```
 
-## API Reference
+---
 
-### AuraPro.CreateWindow(config)
+## Themes
 
-Creates a new UI window.
+8 built-in themes: **Dark**, **Midnight**, **Crimson**, **Emerald**, **Amethyst**, **Sunset**, **Cyberpunk**, **Nordic**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `config.Title` | string | Window title |
-| `config.ToggleKey` | Enum.KeyCode | Key to toggle window visibility |
-| `config.HubImage` | string | Optional hub icon (image ID) |
-
-### Window:CreateTab(name, imageId)
-
-Creates a new tab in the window.
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `name` | string | Tab display name |
-| `imageId` | string | Optional tab icon (image ID) |
-
-## Version History
-
-- **2.5.0** - Latest version with full theme support
-
-## License
-
-This project is licensed under the MIT License.
-
-## Contributing
-
-Contributions are welcome! Feel free to submit issues and pull requests.
+Themes are loaded automatically from remote. Edit `Themes.lua` to customize.
