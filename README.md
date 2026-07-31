@@ -11,9 +11,9 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/minh597/Aura/refs/hea
 
 ```lua
 AuraPro.CreateWindow({
-    Title = "Title",                    -- Window title
-    ToggleKey = Enum.KeyCode.RightShift, -- Toggle key
-    HubImage = "rbxassetid://..."        -- [Optional] Hub icon
+    Title = "Title",                       -- Window title
+    ToggleKey = Enum.KeyCode.RightShift,  -- Toggle visibility key
+    HubImage = "rbxassetid://..."          -- [Optional] Hub icon
 })
 ```
 
@@ -33,54 +33,57 @@ Window:CreateTab("TabName", "rbxassetid://...") -- [Optional] Tab icon
 
 ## Elements
 
-### Label - Text hiển thị
+### Label
 ```lua
-Tab:CreateLabel({ Name = "Text" })
--- .obj:Set("New Text")  -- Thay đổi text
--- .obj:Get()           -- Lấy text hiện tại
+Tab:CreateLabel({
+    Name = "Text"
+})
 ```
 
-### Section - Tiêu đề section
+### Section
 ```lua
 Tab:CreateSection("SECTION NAME")
 ```
 
-### Divider - Đường kẻ
+### Divider
 ```lua
 Tab:CreateDivider()
 ```
 
-### Paragraph - Box tiêu đề + mô tả
+### Paragraph
 ```lua
 Tab:CreateParagraph({
     Title = "Title",
-    Content = "Description..."
-})
--- .obj:SetTitle("New")     -- Đổi title
--- .obj:SetContent("New")   -- Đổi content
-```
-
-### Button - Nút bấm
-```lua
-Tab:CreateButton({
-    Name = "Button",
-    Callback = function()
-        print("Clicked!")
+    Content = "Description...",
+    Callback = function(title, content)
+        -- Called when title or content changes
     end
 })
 ```
 
-### Toggle - Công tắc bật/tắt
+### Button
+```lua
+Tab:CreateButton({
+    Name = "Button",
+    Callback = function()
+        -- Called on click
+    end
+})
+```
+
+### Toggle
 ```lua
 Tab:CreateToggle({
     Name = "Toggle",
-    Flag = "toggle_flag",    -- Key lưu data
-    Default = false          -- Mặc định
+    Flag = "toggle_flag",   -- Save key
+    Default = false,
+    Callback = function(value)
+        -- value = true/false
+    end
 })
--- .obj:Get()                -- Lấy trạng thái (true/false)
 ```
 
-### Slider - Thanh trượt số
+### Slider
 ```lua
 Tab:CreateSlider({
     Name = "Slider",
@@ -88,41 +91,49 @@ Tab:CreateSlider({
     Min = 0,
     Max = 100,
     Default = 50,
-    Increment = 1            -- Bước nhảy
+    Increment = 1,
+    Callback = function(value)
+        -- value = current number
+    end
 })
--- .obj:Get()                -- Lấy giá trị
 ```
 
-### Dropdown - Danh sách chọn
+### Dropdown
 ```lua
 Tab:CreateDropdown({
     Name = "Dropdown",
     Flag = "dropdown_flag",
     Options = {"Option1", "Option2", "Option3"},
-    Default = 1              -- Index mặc định (1 = Option1)
+    Default = 1,
+    Callback = function(selected)
+        -- selected = current option string
+    end
 })
--- .obj:Get()                -- Lấy option đang chọn
 ```
 
-### Textbox - Ô nhập text
+### Textbox
 ```lua
 Tab:CreateTextbox({
     Name = "Textbox",
     Flag = "textbox_flag",
     Placeholder = "Enter...",
-    Default = ""
+    Default = "",
+    Callback = function(value)
+        -- value = input text
+    end
 })
--- .obj:Get()                -- Lấy text nhập
 ```
 
-### Keybind - Phím tắt
+### Keybind
 ```lua
 Tab:CreateKeybind({
     Name = "Keybind",
     Flag = "keybind_flag",
-    Default = Enum.KeyCode.F
+    Default = Enum.KeyCode.F,
+    Callback = function(key)
+        -- key = current Enum.KeyCode
+    end
 })
--- .obj:Get()                -- Lấy key đang bind
 ```
 
 ---
@@ -131,7 +142,7 @@ Tab:CreateKeybind({
 
 `Dark`, `Midnight`, `Crimson`, `Emerald`, `Amethyst`, `Sunset`, `Cyberpunk`, `Nordic`
 
-Themes load tự động từ remote. Tự chỉnh trong `Themes.lua`.
+Themes auto-load from remote. Edit `Themes.lua` to customize.
 
 ---
 
@@ -153,10 +164,10 @@ Tab1:CreateSection("Info")
 Tab1:CreateParagraph({ Title = "Welcome", Content = "Aura UI Library" })
 Tab1:CreateButton({ Name = "Start", Callback = function() end })
 
-Tab2:CreateToggle({ Name = "Enabled", Flag = "enabled", Default = true })
-Tab2:CreateSlider({ Name = "Speed", Flag = "speed", Min = 10, Max = 100, Default = 50 })
-Tab2:CreateDropdown({ Name = "Mode", Flag = "mode", Options = {"A", "B", "C"}, Default = 1 })
-Tab2:CreateKeybind({ Name = "Toggle", Flag = "key", Default = Enum.KeyCode.F })
+Tab2:CreateToggle({ Name = "Enabled", Flag = "enabled", Default = true, Callback = function(v) print(v) end })
+Tab2:CreateSlider({ Name = "Speed", Flag = "speed", Min = 10, Max = 100, Default = 50, Callback = function(v) print(v) end })
+Tab2:CreateDropdown({ Name = "Mode", Flag = "mode", Options = {"A", "B", "C"}, Default = 1, Callback = function(v) print(v) end })
+Tab2:CreateKeybind({ Name = "Toggle", Flag = "key", Default = Enum.KeyCode.F, Callback = function(v) print(v.Name) end })
 ```
 
 ---
