@@ -370,7 +370,8 @@ function Elements.Dropdown(Parent, Theme, SavedData, SelfRef, Config)
 
     ValBtn.MouseButton1Click:Connect(function()
         Open = not Open
-        local targetH, contH = Open and math.clamp(#Options * 32 + 48, 48, 170) or 36, Open and (targetH - 48) or 0
+        local targetH = Open and math.clamp(#Options * 32 + 48, 48, 170) or 36
+        local contH = Open and (targetH - 48) or 0
         TweenService:Create(Frame, TweenInfo.new(0.2), {Size = UDim2.new(0.98, 0, 0, targetH)}):Play()
         TweenService:Create(OptContainer, TweenInfo.new(0.2), {Size = UDim2.new(1, -16, 0, contH)}):Play()
     end)
