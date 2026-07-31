@@ -1,4 +1,4 @@
-local KeySystem = {}
+local KeySystem = {} --uo
 
 function KeySystem.Init(Core, AuraPro)
     local UI = Core.UI
