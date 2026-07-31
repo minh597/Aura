@@ -86,24 +86,42 @@ function UI.Stroke(Obj, Color, Thickness)
     return UI.Create("UIStroke", Obj, { Color = Color, Thickness = Thickness or 1 })
 end
 
-local gDragging, gDragStart, gStartPos, gTargetFrame
-local activeDragInput = nil
-
-UserInputService.InputEnded:Connect(function(input)
-    if input == activeDragInput then
-        gDragging = false
-        activeDragInput = nil
-        gTargetFrame = nil
-    end
-end)
+local gDragInput, gDragStart, gStartPos, gTargetFrame
 
 UserInputService.InputChanged:Connect(function(input)
-    if gDragging and gTargetFrame and input == activeDragInput then
+    if input == gDragInput and gTargetFrame then
         local delta = input.Position - gDragStart
-        gTargetFrame.Position = UDim2.new(gStartPos.X.Scale, gStartPos.X.Offset + delta.X, gStartPos.Y.Scale, gStartPos.Y.Offset + delta.Y)
+
+        gTargetFrame.Position = UDim2.new(
+            gStartPos.X.Scale,
+            gStartPos.X.Offset + delta.X,
+            gStartPos.Y.Scale,
+            gStartPos.Y.Offset + delta.Y
+        )
     end
 end)
 
+local function MakeDraggable(Frame, Handle)
+    Handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+
+            gTargetFrame = Frame
+            gDragInput = input
+            gDragStart = input.Position
+            gStartPos = Frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    if gTargetFrame == Frame then
+                        gTargetFrame = nil
+                        gDragInput = nil
+                    end
+                end
+            end)
+        end
+    end)
+end
 local Elements = {}
 
 function Elements.Label(Parent, Theme, Config)
