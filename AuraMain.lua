@@ -1,9 +1,3 @@
---[[
-    Aura UI Pro - Optimized, Secured & Upgraded Version
-    - Clean architecture, high-performance tensing, robust event pooling.
-    - Added modern features like Search bar for Dropdowns, smooth color transitions, 
-      improved notification stacking, and enhanced key system handling.
-]]
 
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
