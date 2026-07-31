@@ -28,7 +28,7 @@ local Core = loadstring(game:HttpGet("https://raw.githubusercontent.com/minh597/
 Core.CachedParent = CachedParent
 
 local Elements = loadstring(game:HttpGet("https://raw.githubusercontent.com/minh597/Aura/refs/heads/main/Elements.lua"))().Init(Core, AuraPro)
-local KeySystem = loadstring(game:HttpGet("https://raw.githubusercontent.com/minh597/Aura/refs/heads/main/KeySystem.lua"))().Init(Core, AuraPro)
+local KeySystem = loadstring(game:HttpGet("https://raw.githubusercontent.com/minh597/Aura/refs/heads/main/KeySys.lua"))().Init(Core, AuraPro)
 local Window = loadstring(game:HttpGet("https://raw.githubusercontent.com/minh597/Aura/refs/heads/main/Window.lua"))().Init(Core, AuraPro, Elements)
 
 function AuraPro:CreateKeySystem(Config)
