@@ -1,9 +1,21 @@
-local KeySystem = {}
+local KeySystem = {}--666
 
 function KeySystem.Init(Core, AuraPro)
     local UI = Core.UI
     local TweenService = game:GetService("TweenService")
     local CachedParent = (gethui and gethui()) or Core.CachedParent
+
+    local FallbackTheme = {
+        Background = Color3.fromRGB(18, 19, 24),
+        Card = Color3.fromRGB(25, 27, 34),
+        Element = Color3.fromRGB(33, 36, 46),
+        Border = Color3.fromRGB(48, 52, 66),
+        Text = Color3.fromRGB(240, 242, 248),
+        SubText = Color3.fromRGB(145, 152, 172),
+        Accent = Color3.fromRGB(99, 102, 241),
+        Success = Color3.fromRGB(34, 197, 94),
+        Danger = Color3.fromRGB(239, 68, 68)
+    }
 
     function KeySystem:Create(Config)
         Config = Config or {}
@@ -11,25 +23,24 @@ function KeySystem.Init(Core, AuraPro)
         local CorrectKey = Config.Key or "Aura2026"
         local LinkToGet = Config.Link or ""
         
-        local DefaultTheme = AuraPro.Themes.Dark
-        local SelectedTheme = Config.Theme or DefaultTheme
+        local SelectedTheme = (Config.Theme and type(Config.Theme) == "table") and Config.Theme or ((AuraPro.Themes and AuraPro.Themes.Dark) or FallbackTheme)
         
-        local BackgroundColor = SelectedTheme.Background or DefaultTheme.Background
-        local BorderColor = SelectedTheme.Border or DefaultTheme.Border
-        local CardColor = SelectedTheme.Card or DefaultTheme.Card
-        local TextColor = SelectedTheme.Text or DefaultTheme.Text
-        local ElementColor = SelectedTheme.Element or DefaultTheme.Element
-        local SubTextColor = SelectedTheme.SubText or DefaultTheme.SubText
-        local AccentColor = SelectedTheme.Accent or DefaultTheme.Accent
-        local SuccessColor = SelectedTheme.Success or DefaultTheme.Success
-        local DangerColor = SelectedTheme.Danger or DefaultTheme.Danger
+        local BackgroundColor = SelectedTheme.Background or FallbackTheme.Background
+        local BorderColor = SelectedTheme.Border or FallbackTheme.Border
+        local CardColor = SelectedTheme.Card or FallbackTheme.Card
+        local TextColor = SelectedTheme.Text or FallbackTheme.Text
+        local ElementColor = SelectedTheme.Element or FallbackTheme.Element
+        local SubTextColor = SelectedTheme.SubText or FallbackTheme.SubText
+        local AccentColor = SelectedTheme.Accent or FallbackTheme.Accent
+        local SuccessColor = SelectedTheme.Success or FallbackTheme.Success
+        local DangerColor = SelectedTheme.Danger or FallbackTheme.Danger
 
         local UserScale = (Config.Scale or 1.0) * 1.1
         local SuccessCallback = Config.Callback or function() end
         local KeySaveFile = Config.KeySave or "AuraKey_Save.json"
 
         local KeyData = Core:LoadConfig(KeySaveFile)
-        if KeyData.SavedKey == CorrectKey then
+        if KeyData and KeyData.SavedKey == CorrectKey then
             pcall(SuccessCallback)
             return
         end
