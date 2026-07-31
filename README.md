@@ -7,13 +7,33 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/minh597/Aura/refs/hea
 
 ---
 
+## CreateKeySystem
+
+Key verification popup (optional).
+
+```lua
+AuraPro:CreateKeySystem({
+    Name = "Title",              -- Popup title
+    Key = "YOUR_KEY",            -- Correct key
+    Link = "https://...",        -- Link to get key (copies to clipboard)
+    Image = "rbxassetid://...",  -- [Optional] Icon
+    Callback = function()
+        -- Called when key is correct
+    end
+})
+```
+
+---
+
 ## CreateWindow
 
 ```lua
-AuraPro.CreateWindow({
-    Title = "Title",                       -- Window title
-    ToggleKey = Enum.KeyCode.RightShift,  -- Toggle visibility key
-    HubImage = "rbxassetid://..."          -- [Optional] Hub icon
+AuraPro:CreateWindow({
+    Name = "Title",                    -- Window title
+    ToggleKey = Enum.KeyCode.RightShift, -- Toggle key
+    Image = "rbxassetid://...",        -- [Optional] Hub icon
+    Theme = AuraPro.Themes.Dark,       -- [Optional] Theme
+    ConfigSave = "config.json"         -- [Optional] Auto-save config
 })
 ```
 
@@ -21,10 +41,24 @@ AuraPro.CreateWindow({
 
 ---
 
-## CreateTab
+## Window:Notify
+
+Show notification popup.
 
 ```lua
-Window:CreateTab("TabName", "rbxassetid://...") -- [Optional] Tab icon
+Window:Notify({
+    Title = "Title",
+    Content = "Message...",
+    Duration = 3.5  -- seconds
+})
+```
+
+---
+
+## Window:CreateTab
+
+```lua
+Window:CreateTab("TabName", "rbxassetid://...") -- [Optional] Icon
 ```
 
 **Returns:** `Tab` object
@@ -35,14 +69,12 @@ Window:CreateTab("TabName", "rbxassetid://...") -- [Optional] Tab icon
 
 ### Label
 ```lua
-Tab:CreateLabel({
-    Name = "Text"
-})
+Tab:CreateLabel({ Name = "Text" })
 ```
 
 ### Section
 ```lua
-Tab:CreateSection("SECTION NAME")
+Tab:CreateSection("HEADER")
 ```
 
 ### Divider
@@ -55,9 +87,7 @@ Tab:CreateDivider()
 Tab:CreateParagraph({
     Title = "Title",
     Content = "Description...",
-    Callback = function(title, content)
-        -- Called when title or content changes
-    end
+    Callback = function(title, content) end
 })
 ```
 
@@ -65,9 +95,7 @@ Tab:CreateParagraph({
 ```lua
 Tab:CreateButton({
     Name = "Button",
-    Callback = function()
-        -- Called on click
-    end
+    Callback = function() end
 })
 ```
 
@@ -75,11 +103,8 @@ Tab:CreateButton({
 ```lua
 Tab:CreateToggle({
     Name = "Toggle",
-    Flag = "toggle_flag",   -- Save key
     Default = false,
-    Callback = function(value)
-        -- value = true/false
-    end
+    Callback = function(value) end  -- true/false
 })
 ```
 
@@ -87,14 +112,11 @@ Tab:CreateToggle({
 ```lua
 Tab:CreateSlider({
     Name = "Slider",
-    Flag = "slider_flag",
     Min = 0,
     Max = 100,
     Default = 50,
     Increment = 1,
-    Callback = function(value)
-        -- value = current number
-    end
+    Callback = function(value) end  -- number
 })
 ```
 
@@ -102,12 +124,9 @@ Tab:CreateSlider({
 ```lua
 Tab:CreateDropdown({
     Name = "Dropdown",
-    Flag = "dropdown_flag",
-    Options = {"Option1", "Option2", "Option3"},
+    Options = {"A", "B", "C"},
     Default = 1,
-    Callback = function(selected)
-        -- selected = current option string
-    end
+    Callback = function(selected) end  -- string
 })
 ```
 
@@ -115,12 +134,9 @@ Tab:CreateDropdown({
 ```lua
 Tab:CreateTextbox({
     Name = "Textbox",
-    Flag = "textbox_flag",
     Placeholder = "Enter...",
     Default = "",
-    Callback = function(value)
-        -- value = input text
-    end
+    Callback = function(value) end  -- string
 })
 ```
 
@@ -128,11 +144,8 @@ Tab:CreateTextbox({
 ```lua
 Tab:CreateKeybind({
     Name = "Keybind",
-    Flag = "keybind_flag",
     Default = Enum.KeyCode.F,
-    Callback = function(key)
-        -- key = current Enum.KeyCode
-    end
+    Callback = function(key) end  -- Enum.KeyCode
 })
 ```
 
@@ -142,32 +155,32 @@ Tab:CreateKeybind({
 
 `Dark`, `Midnight`, `Crimson`, `Emerald`, `Amethyst`, `Sunset`, `Cyberpunk`, `Nordic`
 
-Themes auto-load from remote. Edit `Themes.lua` to customize.
-
 ---
 
-## Full Example
+## Example
 
 ```lua
 local AuraPro = loadstring(game:HttpGet("https://raw.githubusercontent.com/minh597/Aura/refs/heads/main/AuraMain.lua"))()
 
-local Window = AuraPro.CreateWindow({
-    Title = "My Script",
-    ToggleKey = Enum.KeyCode.RightShift,
-    HubImage = "rbxassetid://6031091004"
+-- Optional key system
+AuraPro:CreateKeySystem({
+    Name = "My Script",
+    Key = "KEY123",
+    Link = "https://link-to-get-key.com",
+    Callback = function()
+        local Window = AuraPro:CreateWindow({
+            Name = "My Script",
+            ToggleKey = Enum.KeyCode.RightShift,
+            ConfigSave = "config.json"
+        })
+
+        local Tab = Window:CreateTab("Home")
+        Tab:CreateToggle({ Name = "Enabled", Default = true, Callback = function(v) end })
+        Tab:CreateSlider({ Name = "Speed", Min = 10, Max = 100, Default = 50, Callback = function(v) end })
+
+        Window:Notify({ Title = "Ready!", Content = "Script loaded." })
+    end
 })
-
-local Tab1 = Window:CreateTab("Home", "rbxassetid://6031091004")
-local Tab2 = Window:CreateTab("Settings", "rbxassetid://6031094678")
-
-Tab1:CreateSection("Info")
-Tab1:CreateParagraph({ Title = "Welcome", Content = "Aura UI Library" })
-Tab1:CreateButton({ Name = "Start", Callback = function() end })
-
-Tab2:CreateToggle({ Name = "Enabled", Flag = "enabled", Default = true, Callback = function(v) print(v) end })
-Tab2:CreateSlider({ Name = "Speed", Flag = "speed", Min = 10, Max = 100, Default = 50, Callback = function(v) print(v) end })
-Tab2:CreateDropdown({ Name = "Mode", Flag = "mode", Options = {"A", "B", "C"}, Default = 1, Callback = function(v) print(v) end })
-Tab2:CreateKeybind({ Name = "Toggle", Flag = "key", Default = Enum.KeyCode.F, Callback = function(v) print(v.Name) end })
 ```
 
 ---
