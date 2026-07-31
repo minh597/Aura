@@ -424,4 +424,305 @@ function Elements.Keybind(Parent, Theme, SavedData, SelfRef, ActiveConns, Config
     local DefaultKey = SavedKeyName and Enum.KeyCode[SavedKeyName] or (Config.Default or Enum.KeyCode.E)
     UpdateFlag(SelfRef, SavedData, Flag, typeof(DefaultKey) == "EnumItem" and DefaultKey.Name or tostring(DefaultKey))
 
-    local Frame = UI.Create("Frame", Parent, { Size = UDim2.new(1, 0, 0, 36), BackgroundColor3 = Theme.Elem
+    local Frame = UI.Create("Frame", Parent, { Size = UDim2.new(1, 0, 0, 36), BackgroundColor3 = Theme.Element })
+    UI.Corner(Frame, 6)
+    UI.Stroke(Frame, Theme.Border)
+
+    UI.Create("TextLabel", Frame, {
+        Size = UDim2.new(0.6, 0, 1, 0), Position = UDim2.new(0, 10, 0, 0),
+        BackgroundTransparency = 1, Text = Config.Name or "Keybind", TextColor3 = Theme.Text,
+        TextSize = 12, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left
+    })
+
+    local KeyBtn = UI.Create("TextButton", Frame, {
+        Size = UDim2.new(0, 90, 0, 24), Position = UDim2.new(1, -98, 0.5, -12),
+        BackgroundColor3 = Theme.Card, Text = typeof(DefaultKey) == "EnumItem" and DefaultKey.Name or tostring(DefaultKey),
+        TextColor3 = Theme.Accent, TextSize = 11, Font = Enum.Font.GothamBold, AutoButtonColor = false
+    })
+    UI.Corner(KeyBtn, 4)
+
+    local currentKey = DefaultKey
+    local listening = false
+    KeyBtn.MouseButton1Click:Connect(function() listening = true; KeyBtn.Text = "..." end)
+
+    TrackConn(ActiveConns, UserInputService.InputBegan:Connect(function(input, proc)
+        if listening and not proc and input.UserInputType == Enum.UserInputType.Keyboard then
+            listening = false
+            currentKey = input.KeyCode
+            KeyBtn.Text = currentKey.Name
+            UpdateFlag(SelfRef, SavedData, Flag, currentKey.Name)
+            pcall(Config.Callback or function() end, currentKey)
+        end
+    end))
+
+    local Obj = {}
+    function Obj:GetValue() return currentKey end
+    return Obj
+end
+
+function AuraPro:CreateKeyTab(Config)
+    Config = Config or {}
+    local TitleText = Config.Name or "Aura UI - Key System"
+    local CorrectKey = Config.Key or "Aura2026"
+    local LinkToGet = Config.Link or ""
+    local SelectedTheme = Config.Theme or self.Themes.Dark
+    local UserScale = (Config.Scale or 1.0) * 1.1
+    local SuccessCallback = Config.Callback or function() end
+    local KeySaveFile = Config.KeySave or self.KeyConfigName
+    local KeyIcon = Config.Image or ""
+
+    local KeyData = LoadDataFromFile(KeySaveFile)
+    if KeyData.SavedKey == CorrectKey then
+        pcall(SuccessCallback)
+        return
+    end
+
+    local KeyGui = UI.Create("ScreenGui", CachedParent, { Name = "Aura_KeySystem_UI", ResetOnSpawn = false })
+    local MainFrame = UI.Create("Frame", KeyGui, {
+        Size = UDim2.new(0, 380, 0, 230), Position = UDim2.new(0.5, -190, 0.5, -135),
+        BackgroundTransparency = 1, BackgroundColor3 = SelectedTheme.Background
+    })
+    UI.Corner(MainFrame, 10)
+    UI.Stroke(MainFrame, SelectedTheme.Border)
+    local UIScale = UI.Create("UIScale", MainFrame, { Scale = 0 })
+
+    TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {BackgroundTransparency = 0}):Play()
+    TweenService:Create(UIScale, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = UserScale}):Play()
+
+    local TopBar = UI.Create("Frame", MainFrame, { Size = UDim2.new(1, -16, 0, 36), Position = UDim2.new(0, 8, 0, 8), BackgroundColor3 = SelectedTheme.Card })
+    UI.Corner(TopBar, 6)
+    MakeDraggable(MainFrame, TopBar)
+
+    if KeyIcon ~= "" then
+        local IconObj = UI.Create("ImageLabel", TopBar, { Size = UDim2.new(0, 22, 0, 22), Position = UDim2.new(0, 8, 0.5, -11), BackgroundTransparency = 1, Image = KeyIcon })
+        UI.Corner(IconObj, 4)
+        UI.Create("TextLabel", TopBar, {
+            Size = UDim2.new(1, -38, 1, 0), Position = UDim2.new(0, 34, 0, 0), BackgroundTransparency = 1,
+            Text = TitleText, TextColor3 = SelectedTheme.Text, TextSize = 13, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left
+        })
+    else
+        UI.Create("TextLabel", TopBar, {
+            Size = UDim2.new(1, -16, 1, 0), Position = UDim2.new(0, 10, 0, 0), BackgroundTransparency = 1,
+            Text = TitleText, TextColor3 = SelectedTheme.Text, TextSize = 13, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left
+        })
+    end
+
+    local KeyBox = UI.Create("TextBox", MainFrame, {
+        Size = UDim2.new(1, -24, 0, 38), Position = UDim2.new(0, 12, 0, 58), BackgroundColor3 = SelectedTheme.Element,
+        PlaceholderText = "Enter key here...", PlaceholderColor3 = SelectedTheme.SubText, Text = "", TextColor3 = SelectedTheme.Text, TextSize = 12, Font = Enum.Font.Gotham
+    })
+    UI.Corner(KeyBox, 6)
+
+    local SubmitBtn = UI.Create("TextButton", MainFrame, {
+        Size = UDim2.new(1, -24, 0, 36), Position = UDim2.new(0, 12, 0, 106), BackgroundColor3 = SelectedTheme.Accent,
+        Text = "SUBMIT KEY", TextColor3 = Color3.fromRGB(255, 255, 255), TextSize = 12, Font = Enum.Font.GothamBold, AutoButtonColor = false
+    })
+    UI.Corner(SubmitBtn, 6)
+
+    local GetKeyBtn = UI.Create("TextButton", MainFrame, {
+        Size = UDim2.new(1, -24, 0, 32), Position = UDim2.new(0, 12, 0, 150), BackgroundColor3 = SelectedTheme.Element,
+        Text = "GET KEY", TextColor3 = SelectedTheme.SubText, TextSize = 11, Font = Enum.Font.GothamMedium, AutoButtonColor = false
+    })
+    UI.Corner(GetKeyBtn, 6)
+
+    SubmitBtn.MouseButton1Click:Connect(function()
+        if KeyBox.Text == CorrectKey then
+            SubmitBtn.Text = "SUCCESS!"
+            SubmitBtn.BackgroundColor3 = SelectedTheme.Success
+            SaveDataToFile(KeySaveFile, {SavedKey = CorrectKey})
+            TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {BackgroundTransparency = 1}):Play()
+            local closeAnim = TweenService:Create(UIScale, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Scale = 0})
+            closeAnim:Play()
+            closeAnim.Completed:Connect(function() KeyGui:Destroy(); pcall(SuccessCallback) end)
+        else
+            SubmitBtn.Text = "INVALID KEY!"
+            SubmitBtn.BackgroundColor3 = SelectedTheme.Danger
+            task.wait(1)
+            SubmitBtn.Text = "SUBMIT KEY"
+            SubmitBtn.BackgroundColor3 = SelectedTheme.Accent
+        end
+    end)
+
+    GetKeyBtn.MouseButton1Click:Connect(function()
+        if setclipboard then setclipboard(LinkToGet) end
+        GetKeyBtn.Text = "COPIED LINK TO CLIPBOARD!"
+        task.wait(2)
+        GetKeyBtn.Text = "GET KEY"
+    end)
+end
+
+function AuraPro:CreateKeySystem(Config)
+    return self:CreateKeyTab(Config)
+end
+
+function AuraPro:CreateWindow(Config)
+    Config = Config or {}
+    local TitleText = Config.Name or "Aura UI Pro"
+    local SelectedTheme = Config.Theme or self.Themes.Dark
+    local ToggleKey = Config.ToggleKey or Enum.KeyCode.RightControl
+    local BaseWidth = Config.Width or 640
+    local BaseHeight = Config.Height or 440
+    local UserScale = Config.Scale or 1.2
+    local HubImage = Config.Image or ""
+
+    self._configName = Config.ConfigSave or nil
+    local activeConns = {}
+    local savedData = LoadDataFromFile(self._configName)
+
+    local ScreenGui = UI.Create("ScreenGui", CachedParent, { Name = "Aura_Pro_UI", ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling })
+    local NotifContainer = UI.Create("Frame", ScreenGui, { Size = UDim2.new(0, 300, 1, -20), Position = UDim2.new(1, -310, 0, 10), BackgroundTransparency = 1, ZIndex = 9999 })
+    UI.Create("UIListLayout", NotifContainer, { VerticalAlignment = Enum.VerticalAlignment.Bottom, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder })
+
+    function AuraPro:Notify(notifConfig)
+        notifConfig = notifConfig or {}
+        local card = UI.Create("Frame", NotifContainer, { Size = UDim2.new(1, 0, 0, 68), BackgroundColor3 = SelectedTheme.Card, Position = UDim2.new(1, 350, 0, 0) })
+        UI.Corner(card, 8)
+        UI.Stroke(card, SelectedTheme.Accent)
+
+        UI.Create("TextLabel", card, { Size = UDim2.new(1, -16, 0, 22), Position = UDim2.new(0, 10, 0, 6), BackgroundTransparency = 1, Text = notifConfig.Title or "Notification", TextColor3 = SelectedTheme.Accent, TextSize = 13, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left })
+        UI.Create("TextLabel", card, { Size = UDim2.new(1, -16, 0, 34), Position = UDim2.new(0, 10, 0, 28), BackgroundTransparency = 1, Text = notifConfig.Content or "", TextColor3 = SelectedTheme.SubText, TextSize = 11, Font = Enum.Font.Gotham, TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true })
+
+        TweenService:Create(card, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0, 0, 0, 0)}):Play()
+        task.delay(notifConfig.Duration or 3.5, function()
+            local out = TweenService:Create(card, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = UDim2.new(1, 350, 0, 0)})
+            out:Play()
+            out.Completed:Connect(function() card:Destroy() end)
+        end)
+    end
+
+    local MainFrame = UI.Create("Frame", ScreenGui, { Size = UDim2.new(0, BaseWidth, 0, BaseHeight), Position = UDim2.new(0.5, -BaseWidth / 2, 0.5, -BaseHeight / 2), BackgroundColor3 = SelectedTheme.Background })
+    UI.Corner(MainFrame, 10)
+    UI.Stroke(MainFrame, SelectedTheme.Border)
+    local MainScale = UI.Create("UIScale", MainFrame, { Scale = 0 })
+    TweenService:Create(MainScale, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = UserScale}):Play()
+
+    local MinifiedGui = UI.Create("ScreenGui", CachedParent, { Name = "Aura_Minified_Icon", ResetOnSpawn = false, Enabled = false })
+    local FloatBtn = UI.Create("ImageButton", MinifiedGui, { Size = UDim2.new(0, 50, 0, 50), Position = UDim2.new(0, 50, 0, 200), BackgroundColor3 = SelectedTheme.Card, Image = HubImage ~= "" and HubImage or "rbxassetid://6023426915", AutoButtonColor = false })
+    UI.Corner(FloatBtn, 25)
+    UI.Stroke(FloatBtn, SelectedTheme.Accent, 2)
+    MakeDraggable(FloatBtn, FloatBtn)
+
+    local TopBar = UI.Create("Frame", MainFrame, { Size = UDim2.new(1, -20, 0, 42), Position = UDim2.new(0, 10, 0, 10), BackgroundColor3 = SelectedTheme.Card })
+    UI.Corner(TopBar, 8)
+    MakeDraggable(MainFrame, TopBar)
+
+    if HubImage ~= "" then
+        local HubIcon = UI.Create("ImageLabel", TopBar, { Size = UDim2.new(0, 26, 0, 26), Position = UDim2.new(0, 10, 0.5, -13), BackgroundTransparency = 1, Image = HubImage })
+        UI.Corner(HubIcon, 6)
+        UI.Create("TextLabel", TopBar, { Size = UDim2.new(0.5, 0, 1, 0), Position = UDim2.new(0, 44, 0, 0), BackgroundTransparency = 1, Text = TitleText, TextColor3 = SelectedTheme.Text, TextSize = 14, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left })
+    else
+        UI.Create("TextLabel", TopBar, { Size = UDim2.new(0.5, 0, 1, 0), Position = UDim2.new(0, 14, 0, 0), BackgroundTransparency = 1, Text = TitleText, TextColor3 = SelectedTheme.Text, TextSize = 14, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left })
+    end
+
+    local Controls = UI.Create("Frame", TopBar, { Size = UDim2.new(0, 70, 1, 0), Position = UDim2.new(1, -75, 0, 0), BackgroundTransparency = 1 })
+    local MinBtn = UI.Create("TextButton", Controls, { Size = UDim2.new(0, 28, 0, 28), Position = UDim2.new(0, 0, 0.5, -14), BackgroundColor3 = SelectedTheme.Element, Text = "—", TextColor3 = SelectedTheme.SubText, TextSize = 12, Font = Enum.Font.GothamBold, AutoButtonColor = false })
+    UI.Corner(MinBtn, 6)
+    local CloseBtn = UI.Create("ImageButton", Controls, { Size = UDim2.new(0, 28, 0, 28), Position = UDim2.new(0, 34, 0.5, -14), BackgroundColor3 = Color3.fromRGB(235, 60, 60), BackgroundTransparency = 0.85, Image = "rbxassetid://6035047409", ImageColor3 = Color3.fromRGB(255, 100, 100), AutoButtonColor = false })
+    UI.Corner(CloseBtn, 6)
+
+    local function ToggleUI(state)
+        MainFrame.Visible = state
+        MinifiedGui.Enabled = not state
+    end
+
+    MinBtn.MouseButton1Click:Connect(function() ToggleUI(false) end)
+    FloatBtn.MouseButton1Click:Connect(function() ToggleUI(true) end)
+
+    local WindowObj = {CurrentTab = nil, Tabs = {}}
+    function WindowObj:Destroy()
+        for _, conn in ipairs(activeConns) do if conn then conn:Disconnect() end end
+        table.clear(activeConns)
+        ScreenGui:Destroy()
+        MinifiedGui:Destroy()
+    end
+
+    CloseBtn.MouseButton1Click:Connect(function()
+        local anim = TweenService:Create(MainScale, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Scale = 0})
+        anim:Play()
+        anim.Completed:Connect(function() WindowObj:Destroy() end)
+    end)
+
+    TrackConn(activeConns, UserInputService.InputBegan:Connect(function(input, proc)
+        if not proc and input.KeyCode == ToggleKey then ToggleUI(not MainFrame.Visible) end
+    end))
+
+    local TabBar = UI.Create("Frame", MainFrame, { Size = UDim2.new(0, 150, 1, -65), Position = UDim2.new(0, 10, 0, 58), BackgroundColor3 = SelectedTheme.Card })
+    UI.Corner(TabBar, 8)
+    local TabScroll = UI.Create("ScrollingFrame", TabBar, { Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, ScrollBarThickness = 2 })
+    UI.Create("UIListLayout", TabScroll, { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 4) })
+    UI.Create("UIPadding", TabScroll, { PaddingTop = UDim.new(0, 6), PaddingLeft = UDim.new(0, 6) })
+
+    local PagesArea = UI.Create("Frame", MainFrame, { Size = UDim2.new(1, -170, 1, -65), Position = UDim2.new(0, 170, 0, 58), BackgroundColor3 = SelectedTheme.Card, ClipsDescendants = true })
+    UI.Corner(PagesArea, 8)
+
+    function WindowObj:CreateTab(Name, TabImage)
+        local TabBtn = UI.Create("TextButton", TabScroll, { Size = UDim2.new(0, 138, 0, 32), BackgroundColor3 = SelectedTheme.Element, BackgroundTransparency = 0.7, Text = "", TextColor3 = SelectedTheme.SubText, TextSize = 12, Font = Enum.Font.GothamMedium, AutoButtonColor = false })
+        UI.Corner(TabBtn, 6)
+
+        if TabImage and TabImage ~= "" then
+            UI.Create("ImageLabel", TabBtn, { Size = UDim2.new(0, 18, 0, 18), Position = UDim2.new(0, 8, 0.5, -9), BackgroundTransparency = 1, Image = TabImage })
+            UI.Create("TextLabel", TabBtn, { Size = UDim2.new(1, -32, 1, 0), Position = UDim2.new(0, 30, 0, 0), BackgroundTransparency = 1, Text = Name, TextColor3 = SelectedTheme.SubText, TextSize = 12, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left })
+        else
+            UI.Create("TextLabel", TabBtn, { Size = UDim2.new(1, -16, 1, 0), Position = UDim2.new(0, 10, 0, 0), BackgroundTransparency = 1, Text = Name, TextColor3 = SelectedTheme.SubText, TextSize = 12, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left })
+        end
+
+        local Page = UI.Create("ScrollingFrame", PagesArea, { Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Visible = false, ScrollBarThickness = 4, CanvasSize = UDim2.new(0, 0, 0, 0) })
+        UI.Create("UIPadding", Page, { PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10), PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 12) })
+        local PageLayout = UI.Create("UIListLayout", Page, { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6), HorizontalAlignment = Enum.HorizontalAlignment.Center })
+        
+        PageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            Page.CanvasSize = UDim2.new(0, 0, 0, PageLayout.AbsoluteContentSize.Y + 20)
+        end)
+
+        local function SelectThisTab()
+            if WindowObj.CurrentTab == Page then return end
+            for _, t in ipairs(WindowObj.Tabs) do
+                t.Page.Visible = false
+                t.Btn.BackgroundTransparency = 0.7
+                t.Btn.TextColor3 = SelectedTheme.SubText
+                for _, child in ipairs(t.Btn:GetChildren()) do
+                    if child:IsA("TextLabel") then child.TextColor3 = SelectedTheme.SubText end
+                end
+            end
+            WindowObj.CurrentTab = Page
+            Page.Visible = true
+            TabBtn.BackgroundTransparency = 0
+            TabBtn.TextColor3 = SelectedTheme.Text
+            for _, child in ipairs(TabBtn:GetChildren()) do
+                if child:IsA("TextLabel") then child.TextColor3 = SelectedTheme.Text end
+            end
+        end
+
+        TabBtn.MouseButton1Click:Connect(SelectThisTab)
+
+        if #WindowObj.Tabs == 0 then
+            WindowObj.CurrentTab = Page
+            Page.Visible = true
+            TabBtn.BackgroundTransparency = 0
+            TabBtn.TextColor3 = SelectedTheme.Text
+            for _, child in ipairs(TabBtn:GetChildren()) do
+                if child:IsA("TextLabel") then child.TextColor3 = SelectedTheme.Text end
+            end
+        end
+
+        table.insert(WindowObj.Tabs, {Btn = TabBtn, Page = Page})
+
+        local TabElements = {}
+        function TabElements:CreateLabel(c) return Elements.Label(Page, SelectedTheme, c) end
+        function TabElements:CreateParagraph(c) return Elements.Paragraph(Page, SelectedTheme, c) end
+        function TabElements:CreateDivider() return Elements.Divider(Page, SelectedTheme) end
+        function TabElements:CreateSection(t) return Elements.Section(Page, SelectedTheme, t) end
+        function TabElements:CreateButton(c) return Elements.Button(Page, SelectedTheme, c) end
+        function TabElements:CreateToggle(c) return Elements.Toggle(Page, SelectedTheme, savedData, AuraPro, c) end
+        function TabElements:CreateSlider(c) return Elements.Slider(Page, SelectedTheme, savedData, AuraPro, c) end
+        function TabElements:CreateDropdown(c) return Elements.Dropdown(Page, SelectedTheme, savedData, AuraPro, c) end
+        function TabElements:CreateTextbox(c) return Elements.Textbox(Page, SelectedTheme, savedData, AuraPro, c) end
+        function TabElements:CreateKeybind(c) return Elements.Keybind(Page, SelectedTheme, savedData, AuraPro, activeConns, c) end
+
+        return TabElements
+    end
+
+    return WindowObj
+end
+
+return AuraPro
