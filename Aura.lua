@@ -774,6 +774,3 @@ function AuraPro:CreateWindow(Config)
 end
 
 return AuraPro
-
-
-Ask AI Assistant
